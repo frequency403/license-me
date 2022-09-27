@@ -1,3 +1,4 @@
+use std::array::IntoIter;
 use std::path::PathBuf;
 use indicatif::{ProgressBar, ProgressStyle};
 use log::info;
