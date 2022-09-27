@@ -17,7 +17,7 @@ pub fn get_license_ver() /*-> String*/ {
 }
 
 pub fn insert_license(mut paths: Vec<&String>) -> usize {
-    let i = paths.len();
+    let i = &paths.len();
     paths.iter_mut().for_each(|path| {info!("Chosen path(s): {}", path)});
     paths.into_iter().for_each(|dir| {
         info!("Processing dir: {dir}");
@@ -50,5 +50,5 @@ pub fn insert_license(mut paths: Vec<&String>) -> usize {
             //OR Append the Licence link in Markdown to README.md if it is present and then add the license.
         }
         });
-    i
+    *i
 }
