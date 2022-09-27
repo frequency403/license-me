@@ -16,6 +16,11 @@ pub fn get_license_ver() /*-> String*/ {
     }
 }
 
+fn get_project_title(path: &str) -> String{
+    let split: Vec<&str> = path.split('\\').collect();
+    split[split.len() -2 ].to_string()
+}
+
 pub fn insert_license(mut paths: Vec<&String>) -> usize {
     let i = &paths.len();
     paths.iter_mut().for_each(|path| {info!("Chosen path(s): {}", path)});
@@ -23,10 +28,11 @@ pub fn insert_license(mut paths: Vec<&String>) -> usize {
         info!("Processing dir: {dir}");
         let readme_path: PathBuf = dir.replace(".git", "README.md").into();
         let license_path: PathBuf = readme_path.display().to_string().replace("README.md", "LICENSE").into();
+        let project_title = get_project_title(dir);
         if !readme_path.exists() {
             info!("README.md not found");
             if File::create(&readme_path).is_ok() {
-                if std::fs::write(&readme_path, readme()).is_ok() {
+                if std::fs::write(&readme_path, readme(project_title)).is_ok() {
                     info!("created {}!", readme_path.display());
                     info!("This is a dummy readme and should be replaced!")
                 } else {

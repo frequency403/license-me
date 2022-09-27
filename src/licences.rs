@@ -1,5 +1,5 @@
-pub fn readme() -> String {
-    "# PROJECTTITLE
+pub fn readme(title: String) -> String {
+    ["# ", title.to_uppercase().as_str() ,"
 
 Enter your text here.
 
@@ -25,7 +25,7 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 
 Please make sure to update tests as appropriate.
 
-## License".to_string()
+## License"].concat().to_string()
 }
 
 pub fn mit() -> String {

@@ -1,4 +1,4 @@
-# PROJECTTITLE
+# LICENSE-ME
 
 Enter your text here.
 
