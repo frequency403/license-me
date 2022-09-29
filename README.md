@@ -22,7 +22,7 @@ Download from the release page for your appropriate operating system.
 
 ## Usage
 
-### License me works on BOTH Windows and Unix-like operating Systems!
+### License-me works on BOTH Windows and Unix-like operating Systems!
 ```bash
 # Normal invocation of the Program:
 
@@ -38,8 +38,10 @@ license-me -d
 #Verbose Mode (It prints out nearly everything it does)
 license-me -v
 
-#Include repos, where a license already exists, and override it!
-license-me --inlcude-licensed
+#Include repos, where a license already exists, and add another to it!
+license-me --append-license
+#Include repos, where a license already exists, and replace it!
+license-me --replace-license 
 ```
 
 ## Contributing

@@ -33,7 +33,7 @@ Please make sure to update tests as appropriate.
 ## License"].concat()
 }
 
-pub fn mit(username: String) -> (String, String) {
+pub fn mit(username: String) -> (String, String, String) {
     (
         [
             "MIT License ",
@@ -62,9 +62,10 @@ SOFTWARE.",
         ]
         .concat(),
         ["[MIT License", "](https://opensource.org/licenses/MIT)"].concat(),
+        "MIT".to_string(),
     )
 }
-pub fn apache2(username: String) -> (String, String) {
+pub fn apache2(username: String) -> (String, String, String) {
     (
         [
             "Copyright ",
@@ -91,10 +92,11 @@ pub fn apache2(username: String) -> (String, String) {
             "](https://www.apache.org/licenses/LICENSE-2.0)",
         ]
         .concat(),
+        "APACHE".to_string(),
     )
 }
 
-pub fn bsd3(username: String) -> (String, String) {
+pub fn bsd3(username: String) -> (String, String, String) {
     (["Copyright ", year().as_str(), " " ,username.as_str(),"
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -112,10 +114,10 @@ INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, B
 OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON \n
 ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING \n
 IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."].concat(), 
-     ["[BSD 3-Clause \"New\" or \"Revised\" license (c) by ", username.as_str() ,"](https://opensource.org/licenses/BSD-3-Clause)"].concat())
+     ["[BSD 3-Clause \"New\" or \"Revised\" license (c) by ", username.as_str() ,"](https://opensource.org/licenses/BSD-3-Clause)"].concat(), "BSD3".to_string())
 }
 
-pub fn bsd2(username: String) -> (String, String) {
+pub fn bsd2(username: String) -> (String, String, String) {
     (
         [
             "Copyright ",
@@ -144,11 +146,11 @@ IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY O
             "[BSD 2-Clause \"Simplified\" or \"FreeBSD\" license",
             "](https://opensource.org/licenses/BSD-2-Clause)",
         ]
-        .concat(),
+        .concat(), "BSD2".to_string()
     )
 }
 
-pub fn gpl2(username: String) -> (String, String) {
+pub fn gpl2(username: String) -> (String, String, String) {
     (
         [
             "Copyright ",
@@ -248,11 +250,11 @@ NO WARRANTY
 12. IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY AND/OR REDISTRIBUTE THE PROGRAM AS PERMITTED ABOVE, BE LIABLE TO YOU FOR DAMAGES, INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE THE PROGRAM (INCLUDING BUT NOT LIMITED TO LOSS OF DATA OR DATA BEING RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD PARTIES OR A FAILURE OF THE PROGRAM TO OPERATE WITH ANY OTHER PROGRAMS), EVEN IF SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.",
         ]
         .concat(),
-        [" ", " "].concat(),
+        [" ", " "].concat(), "GPL2".to_string()
     )
 }
 
-pub fn gpl3(username: String) -> (String, String) {
+pub fn gpl3(username: String) -> (String, String, String) {
     (
         [
             "Copyright ",
@@ -263,10 +265,11 @@ pub fn gpl3(username: String) -> (String, String) {
         ]
         .concat(),
         [" ", " "].concat(),
+        "GPL3".to_string(),
     )
 }
 
-pub fn lgpl20(username: String) -> (String, String) {
+pub fn lgpl20(username: String) -> (String, String, String) {
     (
         [
             "Copyright ",
@@ -277,10 +280,11 @@ pub fn lgpl20(username: String) -> (String, String) {
         ]
         .concat(),
         [" ", " "].concat(),
+        "LGPL2".to_string(),
     )
 }
 
-pub fn lgpl21(username: String) -> (String, String) {
+pub fn lgpl21(username: String) -> (String, String, String) {
     (
         [
             "Copyright ",
@@ -291,10 +295,11 @@ pub fn lgpl21(username: String) -> (String, String) {
         ]
         .concat(),
         [" ", " "].concat(),
+        "LGPL21".to_string(),
     )
 }
 
-pub fn lgpl30(username: String) -> (String, String) {
+pub fn lgpl30(username: String) -> (String, String, String) {
     (
         [
             "Copyright ",
@@ -305,10 +310,11 @@ pub fn lgpl30(username: String) -> (String, String) {
         ]
         .concat(),
         [" ", " "].concat(),
+        "LGPL3".to_string(),
     )
 }
 
-pub fn mpl2(username: String) -> (String, String) {
+pub fn mpl2(username: String) -> (String, String, String) {
     (
         [
             "Copyright ",
@@ -319,10 +325,11 @@ pub fn mpl2(username: String) -> (String, String) {
         ]
         .concat(),
         [" ", " "].concat(),
+        "MPL2".to_string(),
     )
 }
 
-pub fn cddl(username: String) -> (String, String) {
+pub fn cddl(username: String) -> (String, String, String) {
     (
         [
             "Copyright ",
@@ -333,10 +340,11 @@ pub fn cddl(username: String) -> (String, String) {
         ]
         .concat(),
         [" ", " "].concat(),
+        "CDDL".to_string(),
     )
 }
 
-pub fn epl(username: String) -> (String, String) {
+pub fn epl(username: String) -> (String, String, String) {
     (
         [
             "Copyright ",
@@ -347,5 +355,6 @@ pub fn epl(username: String) -> (String, String) {
         ]
         .concat(),
         [" ", " "].concat(),
+        "EPL".to_string(),
     )
 }

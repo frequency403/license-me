@@ -2,7 +2,7 @@ use crate::licences::*;
 use crate::{clear_term, read_input};
 use log::{error, info};
 use std::fs::{File, OpenOptions};
-use std::io::Write;
+use std::io::{Read, Write};
 use std::path::PathBuf;
 
 fn get_project_title(path: &str) -> String {
@@ -10,7 +10,7 @@ fn get_project_title(path: &str) -> String {
     split[split.len() - 2].to_string()
 }
 
-pub fn get_license_ver() -> (String, String) {
+pub fn get_license_ver() -> (String, String, String) {
     let username = read_input("Enter your full name (John Doe): ");
     match read_input(
         "Choose from Popular available Licenses for ALL chosen directories: \n\n\
@@ -49,40 +49,88 @@ pub fn get_license_ver() -> (String, String) {
     }
 }
 
-fn write_license_file(license_path: &PathBuf, license_and_link: &(String, String)) {
-    if std::fs::write(license_path, &license_and_link.0).is_ok() {
-        info!("created {}!", license_path.display())
-    } else {
-        error!("Something went wrong creating the File!");
+fn write_license_file(license_path: &mut PathBuf, license_and_link: &(String, String, String)) {
+    if license_path.exists() {
+        license_path.push(&license_and_link.2);
+    }
+    match std::fs::write(&license_path, &license_and_link.0) {
+        Ok(_) => {
+            info!("created {}!", license_path.display().to_string())
+        }
+        Err(msg) => {
+            error!(
+                "{} occurred while creating file {}",
+                msg,
+                license_path.display()
+            );
+        }
     }
 }
 fn write_readme(readme_path: &PathBuf, current_dir: &str) {
     let project_title = get_project_title(current_dir);
     if File::create(&readme_path).is_ok() {
-        if std::fs::write(&readme_path, readme(project_title)).is_ok() {
-            info!("created {}!", readme_path.display());
-            info!("This is a dummy readme and should be replaced!")
-        } else {
-            error!("Something went wrong creating the File!");
+        match std::fs::write(&readme_path, readme(project_title)) {
+            Ok(_) => {
+                info!("created {}!", readme_path.display());
+                info!("This is a dummy readme and should be replaced!")
+            }
+            Err(msg) => {
+                error!(
+                    "{} occurred while creating file {}",
+                    msg,
+                    readme_path.display()
+                );
+            }
         }
     }
 }
-fn append_to_readme(readme_path: &PathBuf, license_and_link: &(String, String)) {
+fn append_to_readme(readme_path: &PathBuf, license_and_link: &(String, String, String)) {
     if let Ok(mut file) = OpenOptions::new().append(true).open(readme_path) {
         info!("{:#?} successfully opened in append mode", readme_path);
-        if file
-            .write_all(["\n", &license_and_link.1].concat().as_bytes())
-            .is_ok()
-        {
-            info!("Appended {} to README.md", &license_and_link.1)
-        } else {
-            error!("Error while appending to file!")
+        match file.write_all(["\n", &license_and_link.1].concat().as_bytes()) {
+            Ok(_) => {
+                info!("Appended {} to README.md", &license_and_link.1)
+            }
+            Err(msg) => {
+                error!("{} while appending to file {}", msg, readme_path.display())
+            }
         }
     } else {
         error!("Error opening the file in append mode")
     }
 }
-pub fn insert_license(mut paths: Vec<&String>) -> usize {
+
+fn replace_in_readme(readme_path: &PathBuf, license_and_link: &(String, String, String)) {
+    let mut buffnew = String::new();
+    let jhkr = [" License\n", &license_and_link.1, "\n\n##"].concat();
+    if let Ok(mut file_content) = File::open(readme_path) {
+        let mut buffold = String::new();
+        if file_content.read_to_string(&mut buffold).is_ok() {
+            let slice = &mut buffold.split_inclusive("##").collect::<Vec<&str>>();
+            if let Some(ind) = slice.iter().position(|&c| {
+                c.contains(" License ")
+                    || c.contains(" LICENSE ")
+                    || c.contains(" License\n")
+                    || c.contains(" LICENSE\n")
+            }) {
+                slice[ind] = jhkr.as_str();
+            }
+            for it in slice {
+                buffnew = buffnew + it;
+            }
+            println!("{}", buffnew)
+        }
+    }
+}
+
+fn delete_license_file(path: &PathBuf) {
+    match std::fs::remove_file(path) {
+        Ok(_) => info!("Deleted: {}", path.display()),
+        Err(msg) => error!("{} occurred \nduring deletion of {}", msg, path.display()),
+    }
+}
+
+pub fn insert_license(mut paths: Vec<&String>, license_replace_mode: bool) -> usize {
     clear_term();
     let license = get_license_ver();
     clear_term();
@@ -91,9 +139,9 @@ pub fn insert_license(mut paths: Vec<&String>) -> usize {
         .iter_mut()
         .for_each(|path| info!("Chosen path(s): {}", path));
     paths.into_iter().for_each(|dir| {
-        info!("Processing dir: {dir}");
+        info!("Processing dir: {}", dir);
         let readme_path: PathBuf = dir.replace(".git", "README.md").into();
-        let license_path: PathBuf = readme_path
+        let mut license_path: PathBuf = readme_path
             .display()
             .to_string()
             .replace("README.md", "LICENSE")
@@ -101,12 +149,17 @@ pub fn insert_license(mut paths: Vec<&String>) -> usize {
         if !readme_path.exists() {
             info!("README.md not found");
             write_readme(&readme_path, dir);
-            write_license_file(&license_path, &license);
+            write_license_file(&mut license_path, &license);
             append_to_readme(&readme_path, &license);
         } else if readme_path.exists() {
             info!("README.md found! Appending license....");
-            write_license_file(&license_path, &license);
+            write_license_file(&mut license_path, &license);
             append_to_readme(&readme_path, &license)
+        } else if license_replace_mode {
+            info!("README.md found! Replacing license....");
+            delete_license_file(&mut license_path);
+            write_license_file(&mut license_path, &license);
+            replace_in_readme(&readme_path, &license)
         }
     });
     *i

@@ -20,8 +20,9 @@ fn read_input(prompt: &str) -> String {
     s.trim().to_string()
 }
 
-fn arg_modes(arguments: Vec<String>) -> bool {
-    let mut lrm: bool = false;
+fn arg_modes(arguments: Vec<String>) -> (bool, bool) {
+    let mut license_append_mode: bool = false;
+    let mut license_replace_mode: bool = false;
     if arguments.len() > 1 {
         arguments.iter().for_each(|argument| match argument.trim() {
             "-d" => {
@@ -32,19 +33,20 @@ fn arg_modes(arguments: Vec<String>) -> bool {
                 env::set_var("RUST_LOG", "trace");
                 info!("Verbose Mode ON")
             }
-            "--include-licensed" => lrm = true,
+            "--append-license" => license_append_mode = true,
+            "--replace-license" => license_replace_mode = true,
             _ => {}
         })
     }
-    lrm
+    (license_append_mode, license_replace_mode)
 }
 
-fn main() {
+fn init_search() {
     env::set_var("RUST_LOG", "error");
     env_logger::init();
-    let license_replace_mode: bool = arg_modes(env::args().collect::<Vec<String>>());
+    let operating_mode: (bool, bool) = arg_modes(env::args().collect::<Vec<String>>());
     let mut colvec: Vec<&String> = vec![];
-    let col = search::print_git_dirs(license_replace_mode);
+    let col = search::print_git_dirs(operating_mode);
     let input_of_user: String =
         read_input("Enter the number(s) of the repository's to select them: ");
     input_of_user.split_terminator(' ').for_each(|g| {
@@ -62,6 +64,10 @@ fn main() {
     });
     println!(
         "\n\n Done! Processed {} directories successfully!\n",
-        insert::insert_license(colvec)
+        insert::insert_license(colvec, operating_mode.1)
     );
+}
+
+fn main() {
+    init_search();
 }

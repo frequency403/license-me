@@ -1,41 +1,45 @@
 use crate::clear_term;
 use indicatif::{ProgressBar, ProgressStyle};
-use log::info;
+use log::{debug, info};
 use std::path::PathBuf;
 use sysinfo::{DiskExt, System, SystemExt};
 use walkdir::WalkDir;
 
 fn progess_spinner() -> ProgressBar {
-    let pbar = ProgressBar::new_spinner();
-    pbar.set_style(
+    let p_bar = ProgressBar::new_spinner();
+    p_bar.set_style(
         ProgressStyle::with_template("\n{msg}{spinner}")
             .unwrap()
             .tick_strings(&[".  ", " . ", "  .", " . ", ".  ", "   ", " finished!"]),
     );
-    pbar.set_message("Searching");
-    pbar
+    p_bar.set_message("Searching");
+    p_bar
 }
 
-fn walk(root: String, progress_bar: &ProgressBar, lrm: bool) -> Vec<String> {
+fn walk(root: String, progress_bar: &ProgressBar, lrm: (bool, bool)) -> Vec<String> {
     let vec: Vec<String> = WalkDir::new(root)
         .into_iter()
         .filter_map(|entry| {
             if let Ok(entry) = &entry {
                 let mut s: String = String::new();
                 progress_bar.tick();
+                debug!("Searching in: {}", &entry.path().display());
                 if entry.path().display().to_string().ends_with(".git")
                     && !entry.path().display().to_string().contains('$')
                     && !entry.path().display().to_string().contains(".cargo")
                 {
+                    info!(
+                        "Found: {}",
+                        &entry.path().display().to_string().replace(".git", "")
+                    );
                     let walker: PathBuf = entry
                         .path()
                         .display()
                         .to_string()
                         .replace(".git", "LICENSE")
                         .into();
-                    if !walker.exists() {
-                        s = entry.path().display().to_string();
-                    } else if lrm {
+                    if !walker.exists() || lrm.0 || lrm.1 {
+                        debug!("Adding found directory to collection...");
                         s = entry.path().display().to_string();
                     }
                     Some(s)
@@ -50,9 +54,10 @@ fn walk(root: String, progress_bar: &ProgressBar, lrm: bool) -> Vec<String> {
     vec
 }
 
-pub fn print_git_dirs(lrm: bool) -> Vec<String> {
+pub fn print_git_dirs(lrm: (bool, bool)) -> Vec<String> {
     clear_term();
     let bar = progess_spinner();
+    debug!("Initiation successful");
     let mut collector: Vec<String> = vec![];
     if std::env::consts::FAMILY.contains("win") {
         info!("Windows Filesystem Mode");
