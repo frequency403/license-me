@@ -1,22 +1,45 @@
 # LICENSE-ME
 
-Enter your text here.
+A little CLI-Program for finding ALL possible GIT repositorys on your Machine.
+It checks the contents of the folder for an existing "LICENSE" file, and if none is found,
+it will present you the directory(ies) where the file is missing.
 
 ## Installation
 
-Describe the Installation process here
+### Build it yourself
+Download the Sourcecode, then in the directory execute in terminal:
 
 ```bash
-use some code here
+cargo run
+
+#or
+
+cargo install
 ```
+### Download pre-built binarys
+
+Download from the release page for your appropriate operating system.
 
 ## Usage
 
-```rust
-// describe the usage here
+### License me works on BOTH Windows and Unix-like operating Systems!
+```bash
+# Normal invocation of the Program:
 
-// Comment in your used Language (in this example Rust)
-let mut code_example: &str = "Hello World!";
+#Windows:
+./license-me.exe
+#Unix:
+./license-me
+
+#additional flags:
+
+#Debug Mode (Verbose + Additional Information)
+license-me -d
+#Verbose Mode (It prints out nearly everything it does)
+license-me -v
+
+#Include repos, where a license already exists, and override it!
+license-me --inlcude-licensed
 ```
 
 ## Contributing
@@ -25,3 +48,4 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 Please make sure to update tests as appropriate.
 
 ## License
+[MIT License (c) by WebVenture](https://opensource.org/licenses/MIT)
