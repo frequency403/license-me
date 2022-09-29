@@ -48,4 +48,4 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 Please make sure to update tests as appropriate.
 
 ## License
-[MIT License (c) by WebVenture](https://opensource.org/licenses/MIT)
+[MIT License](https://opensource.org/licenses/MIT)

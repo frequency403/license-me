@@ -36,11 +36,9 @@ Please make sure to update tests as appropriate.
 pub fn mit(username: String) -> (String, String) {
     (
         [
-            "MIT License
-
-Copyright (c) ",
+            "MIT License ",
             year().as_str(),
-            " by ",
+            " ",
             username.as_str(),
             "
 
@@ -63,12 +61,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.",
         ]
         .concat(),
-        [
-            "[MIT License (c) by ",
-            username.as_str(),
-            "](https://opensource.org/licenses/MIT)",
-        ]
-        .concat(),
+        ["[MIT License", "](https://opensource.org/licenses/MIT)"].concat(),
     )
 }
 pub fn apache2(username: String) -> (String, String) {
@@ -76,7 +69,7 @@ pub fn apache2(username: String) -> (String, String) {
         [
             "Copyright ",
             year().as_str(),
-            " by ",
+            " ",
             username.as_str(),
             "
 
@@ -94,8 +87,7 @@ pub fn apache2(username: String) -> (String, String) {
         ]
         .concat(),
         [
-            "[Apache License 2.0 (c) by ",
-            username.as_str(),
+            "[Apache License 2.0 ",
             "](https://www.apache.org/licenses/LICENSE-2.0)",
         ]
         .concat(),
@@ -128,7 +120,7 @@ pub fn bsd2(username: String) -> (String, String) {
         [
             "Copyright ",
             year().as_str(),
-            " by ",
+            " ",
             username.as_str(),
             "\
             \
@@ -149,8 +141,7 @@ IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY O
         ]
         .concat(),
         [
-            "[BSD 2-Clause \"Simplified\" or \"FreeBSD\" license (c) by ",
-            username.as_str(),
+            "[BSD 2-Clause \"Simplified\" or \"FreeBSD\" license",
             "](https://opensource.org/licenses/BSD-2-Clause)",
         ]
         .concat(),
@@ -162,7 +153,7 @@ pub fn gpl2(username: String) -> (String, String) {
         [
             "Copyright ",
             year().as_str(),
-            " by ",
+            " ",
             username.as_str(),
             " \n
             
