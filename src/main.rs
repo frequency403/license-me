@@ -58,7 +58,9 @@ fn init_search() {
                 }
             }
         } else if g == "all" {
-            collection_of_git_dirs.iter().for_each(|item| chosen_directories.push(item));
+            collection_of_git_dirs
+                .iter()
+                .for_each(|item| chosen_directories.push(item));
         }
     });
     println!(

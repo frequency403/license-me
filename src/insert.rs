@@ -10,7 +10,7 @@ fn get_project_title(path: &str) -> String {
     split[split.len() - 2].to_string()
 }
 
-pub fn get_license_ver() -> (String, String, String) {
+fn get_license_ver() -> (String, String, String) {
     let username = read_input("Enter your full name (John Doe): ");
     match read_input(
         "Choose from Popular available Licenses for ALL chosen directories: \n\n\
