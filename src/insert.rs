@@ -101,24 +101,26 @@ fn append_to_readme(readme_path: &PathBuf, license_and_link: &(String, String, S
 }
 
 fn replace_in_readme(readme_path: &PathBuf, license_and_link: &(String, String, String)) {
-    let mut buffnew = String::new();
-    let jhkr = [" License\n", &license_and_link.1, "\n\n##"].concat();
+    let mut new_file_content = String::new();
+    let new_license_section = [" License\n", &license_and_link.1, "\n\n##"].concat();
     if let Ok(mut file_content) = File::open(readme_path) {
-        let mut buffold = String::new();
-        if file_content.read_to_string(&mut buffold).is_ok() {
-            let slice = &mut buffold.split_inclusive("##").collect::<Vec<&str>>();
-            if let Some(ind) = slice.iter().position(|&c| {
+        let mut old_file_content = String::new();
+        if file_content.read_to_string(&mut old_file_content).is_ok() {
+            let slices_of_old_file = &mut old_file_content
+                .split_inclusive("##")
+                .collect::<Vec<&str>>();
+            if let Some(index_of_license) = slices_of_old_file.iter().position(|&c| {
                 c.contains(" License ")
                     || c.contains(" LICENSE ")
                     || c.contains(" License\n")
                     || c.contains(" LICENSE\n")
             }) {
-                slice[ind] = jhkr.as_str();
+                slices_of_old_file[index_of_license] = new_license_section.as_str();
             }
-            for it in slice {
-                buffnew = buffnew + it;
+            for slice in slices_of_old_file {
+                new_file_content = new_file_content + slice;
             }
-            println!("{}", buffnew)
+            println!("{}", new_file_content)
         }
     }
 }
@@ -157,7 +159,7 @@ pub fn insert_license(mut paths: Vec<&String>, license_replace_mode: bool) -> us
             append_to_readme(&readme_path, &license)
         } else if license_replace_mode {
             info!("README.md found! Replacing license....");
-            delete_license_file(&mut license_path);
+            delete_license_file(&license_path);
             write_license_file(&mut license_path, &license);
             replace_in_readme(&readme_path, &license)
         }

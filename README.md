@@ -16,7 +16,7 @@ cargo run
 
 cargo install
 ```
-### Download pre-built binarys
+### Download pre-built binary's
 
 Download from the release page for your appropriate operating system.
 

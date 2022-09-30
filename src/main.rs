@@ -44,26 +44,26 @@ fn init_search() {
     env::set_var("RUST_LOG", "error");
     env_logger::init();
     let operating_mode: (bool, bool) = arg_modes(env::args().collect::<Vec<String>>());
-    let mut colvec: Vec<&String> = vec![];
-    let col = search::print_git_dirs(operating_mode);
+    let mut chosen_directories: Vec<&String> = vec![];
+    let collection_of_git_dirs = search::print_git_dirs(operating_mode);
     let input_of_user: String =
         read_input("Enter the number(s) of the repository's to select them: ");
     input_of_user.split_terminator(' ').for_each(|g| {
         if let Ok(int) = g.trim().parse::<isize>() {
             if int.is_positive() {
-                if col.len() < int as usize || int == 0 {
+                if collection_of_git_dirs.len() < int as usize || int == 0 {
                     error!("Index {} not available", int)
                 } else {
-                    colvec.push(&col[int as usize - 1]);
+                    chosen_directories.push(&collection_of_git_dirs[int as usize - 1]);
                 }
             }
         } else if g == "all" {
-            col.iter().for_each(|item| colvec.push(item));
+            collection_of_git_dirs.iter().for_each(|item| chosen_directories.push(item));
         }
     });
     println!(
         "\n\n Done! Processed {} directories successfully!\n",
-        insert::insert_license(colvec, operating_mode.1)
+        insert::insert_license(chosen_directories, operating_mode.1)
     );
 }
 
