@@ -5,12 +5,12 @@ use std::path::PathBuf;
 use sysinfo::{DiskExt, System, SystemExt};
 use walkdir::WalkDir;
 
-fn progess_spinner() -> ProgressBar {
+fn progress_spinner() -> ProgressBar {
     let p_bar = ProgressBar::new_spinner();
     p_bar.set_style(
         ProgressStyle::with_template("\n{msg}{spinner}")
             .unwrap()
-            .tick_strings(&[".  ", " . ", "  .", " . ", ".  ", "   ", " finished!"]),
+            .tick_strings(&[".   ", " .  ", "  . ", "   .", "  . ", " .  ", " finished!"]),
     );
     p_bar.set_message("Searching");
     p_bar
@@ -56,7 +56,7 @@ fn walk(root: String, progress_bar: &ProgressBar, lrm: (bool, bool)) -> Vec<Stri
 
 pub fn print_git_dirs(lrm: (bool, bool)) -> Vec<String> {
     clear_term();
-    let bar = progess_spinner();
+    let bar = progress_spinner();
     debug!("Initiation successful");
     let mut collector: Vec<String> = vec![];
     if std::env::consts::FAMILY.contains("win") {

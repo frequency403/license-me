@@ -1,7 +1,6 @@
 mod insert;
 mod licences;
 mod search;
-
 use log::{debug, error, info};
 use std::env;
 use std::io::stdin;
