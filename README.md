@@ -10,11 +10,7 @@ it will present you the directory(ies) where the file is missing.
 Download the Sourcecode, then in the directory execute in terminal:
 
 ```bash
-cargo run
-
-#or
-
-cargo install
+cargo build
 ```
 ### Download pre-built binary's
 
