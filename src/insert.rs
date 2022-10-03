@@ -103,9 +103,8 @@ fn append_to_readme(readme_path: &PathBuf, license_and_link: &(String, String, S
 }
 
 fn replace_in_readme(readme_path: &PathBuf, license_and_link: &(String, String, String)) {
-    println!("RP: {}\nLAL: {}", readme_path.display(), license_and_link.1);
     let mut new_file_content = String::new();
-    let new_license_section = [" License\n", &license_and_link.1, "\n\n##"].concat();
+    let mut new_license_section = String::new();
     if let Ok(mut file_content) = File::open(readme_path) {
         let mut old_file_content = String::new();
         if file_content.read_to_string(&mut old_file_content).is_ok() {
@@ -113,6 +112,13 @@ fn replace_in_readme(readme_path: &PathBuf, license_and_link: &(String, String, 
             if let Some(index_of_license) = slices_of_old_file.iter().position(|&c| {
                 c.contains(" License ") || c.contains(" LICENSE ") || c.contains(" License\n") || c.contains(" LICENSE\n")
             }) {
+                if let Some(content) = slices_of_old_file.last() {
+                    if content == &slices_of_old_file[index_of_license] {
+                        new_license_section = [" License\n", &license_and_link.1].concat()
+                    } else {
+                        new_license_section = [" License\n", &license_and_link.1, "\n\n##"].concat()
+                    }
+                }
                 slices_of_old_file[index_of_license] = &new_license_section;
             }
             for slice in slices_of_old_file {
