@@ -114,7 +114,7 @@ INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, B
 OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON \n
 ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING \n
 IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."].concat(), 
-     ["[BSD 3-Clause \"New\" or \"Revised\" license (c) by ", username.as_str() ,"](https://opensource.org/licenses/BSD-3-Clause)"].concat(), "BSD3".to_string())
+     ["[BSD 3-Clause \"New\" or \"Revised\" license](https://opensource.org/licenses/BSD-3-Clause)"].concat(), "BSD3".to_string())
 }
 
 pub fn bsd2(username: String) -> (String, String, String) {
@@ -2080,7 +2080,6 @@ This Source Code Form is “Incompatible With Secondary Licenses”, as defined 
 pub fn cddl() -> (String, String, String) {
     (
         ["COMMON DEVELOPMENT AND DISTRIBUTION LICENSE (CDDL) Version 1.0
-COMMON DEVELOPMENT AND DISTRIBUTION LICENSE (CDDL) Version 1.0
 
 1. Definitions.
 

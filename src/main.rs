@@ -65,7 +65,7 @@ fn init_search() {
     });
     println!(
         "\n\n Done! Processed {} directories successfully!\n",
-        insert::insert_license(chosen_directories, operating_mode.1)
+        insert::insert_license(chosen_directories, operating_mode)
     );
 }
 

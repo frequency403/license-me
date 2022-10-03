@@ -4,6 +4,7 @@ use log::{error, info};
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::PathBuf;
+use walkdir::WalkDir;
 
 fn get_project_title(path: &str) -> String {
     let split: Vec<&str> = path.split('\\').collect();
@@ -27,21 +28,19 @@ fn get_license_ver() -> (String, String, String) {
                 [11] Common Development and Distribution License 1.0 (SPDX short identifier: CDDL-1.0)\n\
                 [12] Eclipse Public License version 2.0 (SPDX short identifier: EPL-2.0)\n\n\
                 Your Selection: ",
-    )
-    .trim()
-    {
-        "1" => { mit(username) },
-        "2" => { apache2(username) },
-        "3" => { bsd3(username) },
-        "4" => {bsd2(username)},
-        "5" => {gpl2()},
-        "6" => {gpl3()},
-        "7" => {lgpl20()},
-        "8" => {lgpl21()},
-        "9" => {lgpl30()},
-        "10" => {mpl2()},
-        "11" => {cddl()},
-        "12" => {epl()},
+    ).trim() {
+        "1" => { mit(username) }
+        "2" => { apache2(username) }
+        "3" => { bsd3(username) }
+        "4" => { bsd2(username) }
+        "5" => { gpl2() }
+        "6" => { gpl3() }
+        "7" => { lgpl20() }
+        "8" => { lgpl21() }
+        "9" => { lgpl30() }
+        "10" => { mpl2() }
+        "11" => { cddl() }
+        "12" => { epl() }
         _ => {
             error!("Unknown or wrong input! Remember: One license per Run!");
             get_license_ver()
@@ -51,7 +50,8 @@ fn get_license_ver() -> (String, String, String) {
 
 fn write_license_file(license_path: &mut PathBuf, license_and_link: &(String, String, String)) {
     if license_path.exists() {
-        license_path.push(&license_and_link.2);
+        license_path.pop();
+        license_path.push(["LICENSE-", &license_and_link.2].concat());
     }
     match std::fs::write(&license_path, &license_and_link.0) {
         Ok(_) => {
@@ -66,6 +66,7 @@ fn write_license_file(license_path: &mut PathBuf, license_and_link: &(String, St
         }
     }
 }
+
 fn write_readme(readme_path: &PathBuf, current_dir: &str) {
     let project_title = get_project_title(current_dir);
     if File::create(&readme_path).is_ok() {
@@ -84,6 +85,7 @@ fn write_readme(readme_path: &PathBuf, current_dir: &str) {
         }
     }
 }
+
 fn append_to_readme(readme_path: &PathBuf, license_and_link: &(String, String, String)) {
     if let Ok(mut file) = OpenOptions::new().append(true).open(readme_path) {
         info!("{:#?} successfully opened in append mode", readme_path);
@@ -101,65 +103,82 @@ fn append_to_readme(readme_path: &PathBuf, license_and_link: &(String, String, S
 }
 
 fn replace_in_readme(readme_path: &PathBuf, license_and_link: &(String, String, String)) {
+    println!("RP: {}\nLAL: {}", readme_path.display(), license_and_link.1);
     let mut new_file_content = String::new();
     let new_license_section = [" License\n", &license_and_link.1, "\n\n##"].concat();
     if let Ok(mut file_content) = File::open(readme_path) {
         let mut old_file_content = String::new();
         if file_content.read_to_string(&mut old_file_content).is_ok() {
-            let slices_of_old_file = &mut old_file_content
-                .split_inclusive("##")
-                .collect::<Vec<&str>>();
+            let slices_of_old_file = &mut old_file_content.split_inclusive("##").collect::<Vec<&str>>();
             if let Some(index_of_license) = slices_of_old_file.iter().position(|&c| {
-                c.contains(" License ")
-                    || c.contains(" LICENSE ")
-                    || c.contains(" License\n")
-                    || c.contains(" LICENSE\n")
+                c.contains(" License ") || c.contains(" LICENSE ") || c.contains(" License\n") || c.contains(" LICENSE\n")
             }) {
-                slices_of_old_file[index_of_license] = new_license_section.as_str();
+                slices_of_old_file[index_of_license] = &new_license_section;
             }
             for slice in slices_of_old_file {
                 new_file_content = new_file_content + slice;
             }
-            println!("{}", new_file_content)
+            match std::fs::write(readme_path, new_file_content) {
+                Ok(_) => {
+                    info!("Success in overwriting {}", readme_path.display())
+                }
+                Err(msg) => {
+                    error!("{} occurred while writing {}", msg, readme_path.display())
+                }
+            }
         }
+    } else if let Err(err) = File::open(readme_path) {
+        println!(
+            "{} occurred while opening file: {}",
+            err,
+            readme_path.display()
+        )
     }
 }
 
-fn delete_license_file(path: &PathBuf) {
-    match std::fs::remove_file(path) {
-        Ok(_) => info!("Deleted: {}", path.display()),
-        Err(msg) => error!("{} occurred \nduring deletion of {}", msg, path.display()),
-    }
+//noinspection ALL
+fn delete_license_files(path: &mut PathBuf) {
+    path.pop();
+    let vec = WalkDir::new(&path).into_iter().filter_map(|files| {
+        if let Ok(dir_entry) = files {
+            if dir_entry.path().display().to_string().contains("LICENSE") || dir_entry.path().display().to_string().contains("License") {
+                Some(dir_entry.path().display().to_string())
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }).collect::<Vec<_>>();
+    vec.into_iter().for_each(|file| match std::fs::remove_file(&file) {
+        Ok(_) => info!("Deleted: {}", &file),
+        Err(msg) => error!("{} occurred \nduring deletion of {}", msg, file),
+    });
+    path.push("LICENSE");
 }
 
-pub fn insert_license(mut paths: Vec<&String>, license_replace_mode: bool) -> usize {
+pub fn insert_license(mut paths: Vec<&String>, operating_mode: (bool, bool)) -> usize {
     clear_term();
     let license = get_license_ver();
     clear_term();
     let i = &paths.len();
-    paths
-        .iter_mut()
-        .for_each(|path| info!("Chosen path(s): {}", path));
+    paths.iter_mut().for_each(|path| info!("Chosen path(s): {}", path));
     paths.into_iter().for_each(|dir| {
         info!("Processing dir: {}", dir);
         let readme_path: PathBuf = dir.replace(".git", "README.md").into();
-        let mut license_path: PathBuf = readme_path
-            .display()
-            .to_string()
-            .replace("README.md", "LICENSE")
-            .into();
+        let mut license_path: PathBuf = dir.replace(".git", "LICENSE").into();
         if !readme_path.exists() {
             info!("README.md not found");
             write_readme(&readme_path, dir);
             write_license_file(&mut license_path, &license);
             append_to_readme(&readme_path, &license);
-        } else if readme_path.exists() {
+        } else if operating_mode.0 {
             info!("README.md found! Appending license....");
             write_license_file(&mut license_path, &license);
             append_to_readme(&readme_path, &license)
-        } else if license_replace_mode {
+        } else if operating_mode.1 {
             info!("README.md found! Replacing license....");
-            delete_license_file(&license_path);
+            delete_license_files(&mut license_path);
             write_license_file(&mut license_path, &license);
             replace_in_readme(&readme_path, &license)
         }
