@@ -34,14 +34,14 @@ fn get_license_ver() -> (String, String, String) {
         "2" => { apache2(username) },
         "3" => { bsd3(username) },
         "4" => {bsd2(username)},
-        "5" => {gpl2(username)},
-        "6" => {gpl3(username)},
-        "7" => {lgpl20(username)},
-        "8" => {lgpl21(username)},
-        "9" => {lgpl30(username)},
-        "10" => {mpl2(username)},
-        "11" => {cddl(username)},
-        "12" => {epl(username)},
+        "5" => {gpl2()},
+        "6" => {gpl3()},
+        "7" => {lgpl20()},
+        "8" => {lgpl21()},
+        "9" => {lgpl30()},
+        "10" => {mpl2()},
+        "11" => {cddl()},
+        "12" => {epl()},
         _ => {
             error!("Unknown or wrong input! Remember: One license per Run!");
             get_license_ver()
