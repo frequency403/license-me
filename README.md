@@ -1,5 +1,7 @@
 # LICENSE-ME
 
+#### Idea came from https://github.com/bukinoshita/license-me - thanks for that! =)
+
 A little CLI-Program for finding ALL possible GIT repositorys on your Machine.
 It checks the contents of the folder for an existing "LICENSE" file, and if none is found,
 it will present you the directory(ies) where the file is missing.
