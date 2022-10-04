@@ -4,6 +4,38 @@ A little CLI-Program for finding ALL possible GIT repositorys on your Machine.
 It checks the contents of the folder for an existing "LICENSE" file, and if none is found,
 it will present you the directory(ies) where the file is missing.
 
+## What to expect:
+This program helps you with:
+
+- Licensing your unlicensed projects
+- Creating a dummy README.md if there is none
+- Updating current licenses in your projects (and change links in your readme)
+- Replace existing licenses (and replace the links in your readme)
+
+## What not to expect:
+
+- Updating the repository on GitHub (this you will have to do yourself)
+
+## How the program works
+
+The program starts with searching on all Drives (even your USB if plugged in!)
+for folders with a ".git" folder in it, and assumes that there is a valid Git-Repository.
+
+The folder name where the .git directory is in, is assumed as "Project Title" and will be Inserted
+in the dummy README.md - otherwise this function will not take effect anywhere.
+
+If the Program found a README.md in the "repository" and no "LICENSE" file, then
+it will create a License for you, appending the License Link to the **end** of the Readme file.
+
+Also, if you wanted to append a second (or third, or fourth....) license to your Project it will create a 
+File named like this: "LICENSE-SHORTDEFINITION" and add a link to the **end** of the Readme.md that was found.
+
+(This behaviour may change in the Future - but for now be aware of it!)
+
+If you want to replace a current license The Program will present you all directories with and without a License.
+You should know which repository you want to work in. It will read the README.md and searches for
+a "## License" section. If the Program cant find one, there will happen nothing, you have to link the License yourself.
+
 ## Installation
 
 ### Build it yourself
@@ -48,7 +80,7 @@ license-me --replace-license
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
-Please make sure to update tests as appropriate.
+Please feel free to contact me if there is a problem with understanding the Code, or general questions about the Program.
 
 ## License
 [MIT License](https://opensource.org/licenses/MIT)
