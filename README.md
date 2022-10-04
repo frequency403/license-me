@@ -30,13 +30,16 @@ If the Program found a README.md in the "repository" and no "LICENSE" file, then
 it will create a License for you, appending the License Link to the **end** of the Readme file.
 
 Also, if you wanted to append a second (or third, or fourth....) license to your Project it will create a 
-File named like this: "LICENSE-SHORTDEFINITION" and add a link to the **end** of the Readme.md that was found.
+File named like this: "LICENSE-SHORTNAME" and add a link to the **end** of the Readme.md that was found.
 
 (This behaviour may change in the Future - but for now be aware of it!)
 
 If you want to replace a current license The Program will present you all directories with and without a License.
 You should know which repository you want to work in. It will read the README.md and searches for
 a "## License" section. If the Program cant find one, there will happen nothing, you have to link the License yourself.
+
+Then it will split the README.md file into sections separated by "##" and replaces the "## License" part with a new, formatted
+License section. Then the README.md will be overwritten. So there **SHOULD** be no changes made to other parts of your README.
 
 ## Installation
 
