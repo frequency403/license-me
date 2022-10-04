@@ -16,12 +16,13 @@ homepage = "https://github.com/frequency403/license-me"
 walkdir = "2.3.2"
 sysinfo = "0.26.4"
 indicatif = "0.17.1"
-log = "0.4.17"
-env_logger = "0.9.1"
 chrono = "0.4.22"
+ansi_term = "0.12.1"
 
 [profile.dev]
 opt-level = 0
 
 [profile.release]
 opt-level = 3
+debug=true
+lto=true
