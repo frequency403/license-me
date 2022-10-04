@@ -10,7 +10,12 @@ it will present you the directory(ies) where the file is missing.
 Download the Sourcecode, then in the directory execute in terminal:
 
 ```bash
-cargo build
+cargo build --release
+#unix
+cp $(pwd)/target/release/license-me /bin/
+#windows
+
+#copy the "license-me.exe" from .../target/release/ to anywhere you like
 ```
 ### Download pre-built binary's
 
