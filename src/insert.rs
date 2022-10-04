@@ -167,7 +167,8 @@ fn replace_in_readme(
 //noinspection ALL
 fn delete_license_files(path: &mut PathBuf, pm: &PrintMode) {
     path.pop();
-    let vec = WalkDir::new(&path)
+    let mut vec: Vec<String> = Vec::new();
+    WalkDir::new(&path)
         .into_iter()
         .filter_map(|files| {
             if let Ok(dir_entry) = files {
@@ -181,8 +182,7 @@ fn delete_license_files(path: &mut PathBuf, pm: &PrintMode) {
             } else {
                 None
             }
-        })
-        .collect::<Vec<_>>();
+        }).for_each(|i| vec.push(i));
     vec.into_iter()
         .for_each(|file| match std::fs::remove_file(&file) {
             Ok(_) => pm.verbose_msg(format!("Deleted: {}", &file)),
