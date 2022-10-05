@@ -167,7 +167,7 @@ fn replace_in_readme(
 fn delete_license_files(path: &mut PathBuf, pm: &PrintMode) {
     path.pop();
     let mut vec: Vec<String> = Vec::new();
-    WalkDir::new(&path)
+    WalkDir::new(&path).max_depth(1)
         .into_iter()
         .filter_map(|files| {
             if let Ok(dir_entry) = files {
@@ -201,9 +201,9 @@ pub fn insert_license(
     clear_term();
     paths
         .iter_mut()
-        .for_each(|path| pm.verbose_msg(format!("Chosen path(s): {}", path)));
+        .for_each(|path| pm.verbose_msg(format!("Chosen path(s): {}", path.replace(".git", ""))));
     paths.into_iter().for_each(|dir| {
-        pm.verbose_msg(format!("Processing dir: {}", dir));
+        pm.verbose_msg(format!("Processing dir: {}", dir.replace(".git", "")));
         let readme_path: PathBuf = dir.replace(".git", "README.md").into();
         let mut license_path: PathBuf = dir.replace(".git", "LICENSE").into();
         if !readme_path.exists() {
