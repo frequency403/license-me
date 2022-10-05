@@ -164,7 +164,6 @@ fn replace_in_readme(
     }
 }
 
-//noinspection ALL
 fn delete_license_files(path: &mut PathBuf, pm: &PrintMode) {
     path.pop();
     let mut vec: Vec<String> = Vec::new();
@@ -198,8 +197,8 @@ pub fn insert_license(
 ) -> usize {
     clear_term();
     let license = get_license_ver(pm);
-    clear_term();
     let i = &paths.len();
+    clear_term();
     paths
         .iter_mut()
         .for_each(|path| pm.verbose_msg(format!("Chosen path(s): {}", path)));

@@ -1,5 +1,6 @@
 use chrono::Local;
 use std::fmt::Display;
+use indicatif::ProgressBar;
 
 #[derive(Debug, Copy, Clone)]
 pub struct PrintMode {
@@ -19,7 +20,7 @@ impl PrintMode {
         T: Display,
     {
         if self.verbose || self.debug {
-            println!(
+            eprintln!(
                 "[{} - {}] {}",
                 ansi_term::Style::new()
                     .bold()
@@ -34,7 +35,7 @@ impl PrintMode {
         T: Display,
     {
         if self.debug {
-            println!(
+            eprintln!(
                 "[{} - {}] {}",
                 ansi_term::Style::new()
                     .bold()
@@ -42,6 +43,40 @@ impl PrintMode {
                 ansi_term::Color::Green.bold().paint("DEBUG"),
                 msg
             );
+        }
+    }
+    pub fn verbose_msg_b<T>(&self, msg: T, bar: &ProgressBar)
+        where
+            T: Display,
+    {
+        if self.verbose || self.debug {
+            bar.suspend(|| {
+                eprintln!(
+                    "[{} - {}] {}",
+                    ansi_term::Style::new()
+                        .bold()
+                        .paint(Local::now().format(" %F | %T").to_string()),
+                    ansi_term::Color::Purple.bold().paint("INFO"),
+                    msg
+                );
+            })
+        }
+    }
+    pub fn debug_msg_b<T>(&self, msg: T, bar: &ProgressBar)
+        where
+            T: Display,
+    {
+        if self.debug {
+            bar.suspend(|| {
+                eprintln!(
+                    "[{} - {}] {}",
+                    ansi_term::Style::new()
+                        .bold()
+                        .paint(Local::now().format(" %F | %T").to_string()),
+                    ansi_term::Color::Green.bold().paint("DEBUG"),
+                    msg
+                );
+            })
         }
     }
     pub fn error_msg<T>(&self, msg: T)
