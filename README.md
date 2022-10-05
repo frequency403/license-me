@@ -34,7 +34,7 @@ File named like this: "LICENSE-SHORTNAME" and add a link to the **end** of the R
 
 (This behaviour may change in the Future - but for now be aware of it!)
 
-If you want to replace a current license The Program will present you all directories with and without a License.
+If you want to replace a current license the Program will present you all directories with and without a License.
 You should know which repository you want to work in. It will read the README.md and searches for
 a "## License" section. If the Program cant find one, there will happen nothing, you have to link the License yourself.
 

@@ -8,9 +8,17 @@ use crate::licences::*;
 use crate::{clear_term, read_input, PrintMode};
 
 fn get_project_title(path: &str, pm: &PrintMode) -> String {
-    let split: Vec<&str> = path.split('\\').collect();
-    pm.verbose_msg(format!("Project title is: {}", split[split.len() - 2]));
-    split[split.len() - 2].to_string()
+    let mut path_splitter = '/';
+    if cfg!(windows) {
+        path_splitter = '\\'
+    }
+    if path.len() >= 2 {
+        let split: Vec<&str> = path.split(path_splitter).collect();
+        pm.verbose_msg(format!("Project title is: {}", split[split.len() - 2]));
+        split[split.len() - 2].to_string()
+    } else {
+        "project-title".to_string()
+    }
 }
 
 fn get_license_ver(pm: &PrintMode) -> (String, String, String) {
@@ -211,7 +219,7 @@ pub fn insert_license(
             write_readme(&readme_path, dir, pm);
             write_license_file(&mut license_path, &license, pm);
             append_to_readme(&readme_path, &license, pm);
-        } else if operating_mode.0 {
+        } else if operating_mode.0 || readme_path.exists() {
             pm.verbose_msg("README.md found! Appending license....");
             write_license_file(&mut license_path, &license, pm);
             append_to_readme(&readme_path, &license, pm)

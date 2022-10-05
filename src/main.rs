@@ -47,7 +47,7 @@ fn init_search() {
     let mut print_mode: PrintMode = PrintMode::norm();
     let operating_mode: (bool, bool) = arg_modes(args().collect::<Vec<String>>(), &mut print_mode);
     let mut chosen_directories: Vec<&String> = vec![];
-    let collection_of_git_dirs = search::print_git_dirs(operating_mode, &print_mode);
+    let collection_of_git_dirs: Vec<String> = search::print_git_dirs(operating_mode, &print_mode);
     let input_of_user: String =
         read_input("Enter the number(s) of the repository's to select them: ");
     input_of_user.split_terminator(' ').for_each(|g| {
@@ -69,7 +69,7 @@ fn init_search() {
                 chosen_directories.push(item)
             });
         }
-    });
+    });//@TODO failsafe for incorrect input
     print_mode.normal_msg(format!(
         "\n\n Done! Processed {} directories successfully!\n",
         insert::insert_license(chosen_directories, operating_mode, &print_mode)

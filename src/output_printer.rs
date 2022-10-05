@@ -79,6 +79,7 @@ impl PrintMode {
             })
         }
     }
+    //@TODO impl error collection
     pub fn error_msg<T>(&self, msg: T)
     where
         T: Display,

@@ -75,7 +75,7 @@ pub fn print_git_dirs(lrm: (bool, bool), pm: &PrintMode) -> Vec<String> {
             });
         }
     } else {
-        pm.verbose_msg_b("Windows Filesystem Mode", &bar);
+        pm.verbose_msg_b("Unix Filesystem Mode", &bar);
         walk("/".to_string(), &bar, lrm, pm).into_iter().filter_map(|item| {
             if !item.is_empty() {
                 pm.debug_msg_b(&item, &bar);
@@ -107,6 +107,7 @@ pub fn print_git_dirs(lrm: (bool, bool), pm: &PrintMode) -> Vec<String> {
     }
     collector.iter().for_each(|i| {
         if let Some(int) = collector.iter().position(|l| l == i) {
+            //@TODO failsafe for dirs containing ".git"
             pm.normal_msg(format!("[{}] \"{}\"", int + 1, i.replace(".git", "")));
         }
     });
