@@ -21,7 +21,7 @@ fn get_project_title(path: &str, pm: &PrintMode) -> String {
     }
 }
 
-fn get_license_ver(pm: &PrintMode) -> (String, String, String) {
+fn get_license_ver(pm: &mut PrintMode) -> (String, String, String) {
     let username = read_input("Enter your full name (John Doe): ");
     match read_input(
         "Choose from Popular available Licenses for ALL chosen directories: \n\n\
@@ -61,7 +61,7 @@ fn get_license_ver(pm: &PrintMode) -> (String, String, String) {
 fn write_license_file(
     license_path: &mut PathBuf,
     license_and_link: &(String, String, String),
-    pm: &PrintMode,
+    pm: &mut PrintMode,
 ) {
     if license_path.exists() {
         license_path.pop();
@@ -79,7 +79,7 @@ fn write_license_file(
     }
 }
 
-fn write_readme(readme_path: &PathBuf, current_dir: &str, pm: &PrintMode) {
+fn write_readme(readme_path: &PathBuf, current_dir: &str, pm: &mut PrintMode) {
     let project_title = get_project_title(current_dir, pm);
     if File::create(&readme_path).is_ok() {
         match std::fs::write(&readme_path, readme(project_title)) {
@@ -101,7 +101,7 @@ fn write_readme(readme_path: &PathBuf, current_dir: &str, pm: &PrintMode) {
 fn append_to_readme(
     readme_path: &PathBuf,
     license_and_link: &(String, String, String),
-    pm: &PrintMode,
+    pm: &mut PrintMode,
 ) {
     if let Ok(mut file) = OpenOptions::new().append(true).open(readme_path) {
         pm.verbose_msg(format!(
@@ -124,7 +124,7 @@ fn append_to_readme(
 fn replace_in_readme(
     readme_path: &PathBuf,
     license_and_link: &(String, String, String),
-    pm: &PrintMode,
+    pm: &mut PrintMode,
 ) {
     let mut new_file_content = String::new();
     let mut new_license_section = String::new();
@@ -172,7 +172,7 @@ fn replace_in_readme(
     }
 }
 
-fn delete_license_files(path: &mut PathBuf, pm: &PrintMode) {
+fn delete_license_files(path: &mut PathBuf, pm: &mut PrintMode) {
     path.pop();
     let mut vec: Vec<String> = Vec::new();
     WalkDir::new(&path).max_depth(1)
@@ -201,10 +201,10 @@ fn delete_license_files(path: &mut PathBuf, pm: &PrintMode) {
 pub fn insert_license(
     mut paths: Vec<&String>,
     operating_mode: (bool, bool),
-    pm: &PrintMode,
+    mut pm: &mut PrintMode,
 ) -> usize {
     clear_term();
-    let license = get_license_ver(pm);
+    let license = get_license_ver(&mut pm);
     let i = &paths.len();
     clear_term();
     paths
@@ -217,17 +217,17 @@ pub fn insert_license(
         if !readme_path.exists() {
             pm.verbose_msg("README.md not found");
             write_readme(&readme_path, dir, pm);
-            write_license_file(&mut license_path, &license, pm);
-            append_to_readme(&readme_path, &license, pm);
+            write_license_file(&mut license_path, &license, &mut pm);
+            append_to_readme(&readme_path, &license, &mut pm);
         } else if operating_mode.0 || readme_path.exists() {
             pm.verbose_msg("README.md found! Appending license....");
-            write_license_file(&mut license_path, &license, pm);
-            append_to_readme(&readme_path, &license, pm)
+            write_license_file(&mut license_path, &license, &mut pm);
+            append_to_readme(&readme_path, &license, &mut pm)
         } else if operating_mode.1 {
             pm.verbose_msg("README.md found! Replacing license....");
-            delete_license_files(&mut license_path, pm);
-            write_license_file(&mut license_path, &license, pm);
-            replace_in_readme(&readme_path, &license, pm)
+            delete_license_files(&mut license_path, &mut pm);
+            write_license_file(&mut license_path, &license, &mut pm);
+            replace_in_readme(&readme_path, &license, &mut pm)
         }
     });
     *i

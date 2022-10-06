@@ -21,7 +21,7 @@ fn walk(
     root: String,
     progress_bar: &ProgressBar,
     lrm: (bool, bool),
-    pm: &PrintMode,
+    pm: &mut PrintMode,
 ) -> Vec<String> {
     let vec: Vec<String> = WalkDir::new(root).into_iter().filter_map(|entry| {
         if let Ok(entry) = &entry {
@@ -52,9 +52,21 @@ fn walk(
     }).collect();
     vec
 }
-pub fn print_git_dirs(lrm: (bool, bool), pm: &PrintMode) -> Vec<String> {
+fn dir_validator(dir: String, collection: &mut Vec<String>, pm: &mut PrintMode, bar: &ProgressBar) {
+    if let Some(buf) = dir.strip_suffix(".git") {
+        if !buf.contains(".git") {
+            pm.debug_msg_b(format!("Collected: {}", dir), bar);
+            pm.verbose_msg_b(format!("Valid: {}", dir), bar);
+            collection.push(dir)
+        } else {
+            pm.error_msg(format!("Invalid Directory: {}", dir))
+        }
+    }
+}
+pub fn print_git_dirs(lrm: (bool, bool), pm: &mut PrintMode) -> Vec<String> {
     clear_term();
     let bar = progress_spinner();
+    let mut prm = pm.clone();
     pm.debug_msg_b("Initiation successful", &bar);
     let mut collector: Vec<String> = vec![];
     if cfg!(windows) {
@@ -70,8 +82,7 @@ pub fn print_git_dirs(lrm: (bool, bool), pm: &PrintMode) -> Vec<String> {
                     None
                 }
             }).for_each(|content| {
-                pm.debug_msg_b(format!("Collected: {}", content), &bar);
-                collector.push(content)
+                dir_validator(content, &mut collector, &mut prm, &bar)
             });
         }
     } else {
@@ -84,8 +95,7 @@ pub fn print_git_dirs(lrm: (bool, bool), pm: &PrintMode) -> Vec<String> {
                 None
             }
         }).for_each(|content| {
-            pm.debug_msg_b(format!("Collected: {}", content), &bar);
-            collector.push(content)
+            dir_validator(content, &mut collector, &mut prm, &bar)
         });
     }
     bar.finish();
@@ -107,7 +117,6 @@ pub fn print_git_dirs(lrm: (bool, bool), pm: &PrintMode) -> Vec<String> {
     }
     collector.iter().for_each(|i| {
         if let Some(int) = collector.iter().position(|l| l == i) {
-            //@TODO failsafe for dirs containing ".git"
             pm.normal_msg(format!("[{}] \"{}\"", int + 1, i.replace(".git", "")));
         }
     });
