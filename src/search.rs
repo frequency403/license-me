@@ -1,5 +1,6 @@
 use indicatif::{ProgressBar, ProgressStyle};
 use std::path::PathBuf;
+use std::time::Instant;
 use sysinfo::{DiskExt, System, SystemExt};
 use walkdir::WalkDir;
 
@@ -20,12 +21,11 @@ fn progress_spinner() -> ProgressBar {
 fn walk(
     root: String,
     progress_bar: &ProgressBar,
-    lrm: (bool, bool),
+    lrm: (bool, bool, bool),
     pm: &mut PrintMode,
 ) -> Vec<String> {
     let vec: Vec<String> = WalkDir::new(root).into_iter().filter_map(|entry| {
         if let Ok(entry) = &entry {
-            let mut s: String = String::new();
             pm.debug_msg_b(format!("Searching in: {}", &entry.path().display()), progress_bar);
             if entry.path().display().to_string().ends_with(".git") && !entry.path().display().to_string().contains('$') && !entry.path().display().to_string().contains(".cargo") {
                 pm.verbose_msg_b(format!(
@@ -33,16 +33,18 @@ fn walk(
                     &entry.path().display().to_string().replace(".git", "")
                 ), progress_bar);
                 let walker: PathBuf = entry.path().display().to_string().replace(".git", "LICENSE").into();
-                if (lrm.0 || lrm.1) && walker.exists() {
+                if lrm.2 {
+                    pm.verbose_msg_b("Adding dir to collection..", progress_bar);
+                    Some(entry.path().display().to_string())
+                } else if (lrm.0 || lrm.1) && walker.exists() {
                     pm.verbose_msg_b("Found License file in directory", progress_bar);
                     pm.debug_msg_b("Adding found directory to collection...", progress_bar);
-                    s = entry.path().display().to_string();
+                    Some(entry.path().display().to_string())
                 } else if !(lrm.0 || lrm.1 || walker.exists()) {
                     pm.verbose_msg_b("Found no License file in directory", progress_bar);
                     pm.debug_msg_b("Adding found directory to collection...", progress_bar);
-                    s = entry.path().display().to_string();
-                }
-                Some(s)
+                    Some(entry.path().display().to_string())
+                } else { None }
             } else {
                 None
             }
@@ -63,7 +65,7 @@ fn dir_validator(dir: String, collection: &mut Vec<String>, pm: &mut PrintMode, 
         }
     }
 }
-pub fn print_git_dirs(lrm: (bool, bool), pm: &mut PrintMode) -> Vec<String> {
+pub fn print_git_dirs(lrm: (bool, bool, bool), pm: &mut PrintMode, dur: Instant) -> Vec<String> {
     clear_term();
     let bar = progress_spinner();
     let mut prm = pm.clone();
@@ -104,15 +106,20 @@ pub fn print_git_dirs(lrm: (bool, bool), pm: &mut PrintMode) -> Vec<String> {
         pm.normal_msg("Found no possible unlicensed git repository's! Exiting....");
         std::process::exit(1);
     }
-    if lrm.0 || lrm.1 {
+    if lrm.2 {
         pm.normal_msg(format!(
-            "Found {} possible repository(s) that have a LICENSE!\n\n",
-            collector.len()
+            "Found {} possible repository(s)! Took {} secs!\n\n",
+            collector.len(), dur.elapsed().as_secs_f32().round()
+        ));
+    } else if lrm.0 || lrm.1 {
+        pm.normal_msg(format!(
+            "Found {} possible repository(s) that have a LICENSE! Took {} secs!\n\n",
+            collector.len(), dur.elapsed().as_secs_f32().round()
         ));
     } else {
         pm.normal_msg(format!(
-            "Found {} possible repository(s) that have no LICENSE!\n\n",
-            collector.len()
+            "Found {} possible repository(s) that have no LICENSE! Took {} secs!\n\n",
+            collector.len(), dur.elapsed().as_secs_f32().round()
         ));
     }
     collector.iter().for_each(|i| {

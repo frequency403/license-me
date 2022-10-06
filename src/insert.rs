@@ -200,11 +200,11 @@ fn delete_license_files(path: &mut PathBuf, pm: &mut PrintMode) {
 
 pub fn insert_license(
     mut paths: Vec<&String>,
-    operating_mode: (bool, bool),
-    mut pm: &mut PrintMode,
+    operating_mode: (bool, bool, bool),
+    pm: &mut PrintMode,
 ) -> usize {
     clear_term();
-    let license = get_license_ver(&mut pm);
+    let license = get_license_ver(pm);
     let i = &paths.len();
     clear_term();
     paths
@@ -217,17 +217,17 @@ pub fn insert_license(
         if !readme_path.exists() {
             pm.verbose_msg("README.md not found");
             write_readme(&readme_path, dir, pm);
-            write_license_file(&mut license_path, &license, &mut pm);
-            append_to_readme(&readme_path, &license, &mut pm);
+            write_license_file(&mut license_path, &license, pm);
+            append_to_readme(&readme_path, &license, pm);
         } else if operating_mode.0 || readme_path.exists() {
             pm.verbose_msg("README.md found! Appending license....");
-            write_license_file(&mut license_path, &license, &mut pm);
-            append_to_readme(&readme_path, &license, &mut pm)
+            write_license_file(&mut license_path, &license, pm);
+            append_to_readme(&readme_path, &license, pm)
         } else if operating_mode.1 {
             pm.verbose_msg("README.md found! Replacing license....");
-            delete_license_files(&mut license_path, &mut pm);
-            write_license_file(&mut license_path, &license, &mut pm);
-            replace_in_readme(&readme_path, &license, &mut pm)
+            delete_license_files(&mut license_path, pm);
+            write_license_file(&mut license_path, &license, pm);
+            replace_in_readme(&readme_path, &license, pm)
         }
     });
     *i

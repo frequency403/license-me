@@ -1,5 +1,6 @@
 use std::env::args;
 use std::io::stdin;
+use std::time::Instant;
 
 use crate::output_printer::*;
 
@@ -24,9 +25,10 @@ fn read_input(prompt: &str) -> String {
     s.trim().to_string()
 }
 
-fn arg_modes(arguments: Vec<String>, pmm: &mut PrintMode) -> (bool, bool) {
+fn arg_modes(arguments: Vec<String>, pmm: &mut PrintMode) -> (bool, bool, bool) {
     let mut license_append_mode: bool = false;
     let mut license_replace_mode: bool = false;
+    let mut all_git_dirs_mode: bool = false;
     if arguments.len() > 1 {
         arguments.iter().for_each(|argument| match argument.trim() {
             "-d" => {
@@ -39,17 +41,20 @@ fn arg_modes(arguments: Vec<String>, pmm: &mut PrintMode) -> (bool, bool) {
             }
             "--append-license" => license_append_mode = true,
             "--replace-license" => license_replace_mode = true,
+            "--show-all" => all_git_dirs_mode = true,
             _ => {}
         })
     }
-    (license_append_mode, license_replace_mode)
+    (license_append_mode, license_replace_mode, all_git_dirs_mode)
 }
 
 fn init_search() {
+    let sys_time: Instant = Instant::now();
     let mut print_mode: PrintMode = PrintMode::norm();
-    let operating_mode: (bool, bool) = arg_modes(args().collect::<Vec<String>>(), &mut print_mode);
+    let operating_mode: (bool, bool, bool) = arg_modes(args().collect::<Vec<String>>(), &mut print_mode);
     let mut chosen_directories: Vec<&String> = vec![];
-    let collection_of_git_dirs: Vec<String> = search::print_git_dirs(operating_mode, &mut print_mode);
+    let collection_of_git_dirs: Vec<String> = search::print_git_dirs(operating_mode, &mut print_mode, sys_time);
+    if operating_mode.2 {print_mode.normal_msg("\n\nPlease run again for modifying the directories\n");return}
     let input_of_user: String =
         read_input("Enter the number(s) of the repository's to select them: ");
     input_of_user.split_terminator(' ').for_each(|g| {
