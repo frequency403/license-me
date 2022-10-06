@@ -80,6 +80,8 @@ license-me -v
 license-me --append-license
 #Include repos, where a license already exists, and replace it!
 license-me --replace-license 
+#Include all repos assumed as a git repository!
+license-me --show-all 
 ```
 
 ## Contributing

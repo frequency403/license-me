@@ -1,6 +1,6 @@
 [package]
 name = "license-me"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 authors = ["Oliver Schantz <frequency403@gmail.com>"]
 description = "A little CLI-program to license your unlicensed git-repositorys on your machine - and create a dummy readme if it not exists!"

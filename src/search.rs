@@ -108,18 +108,18 @@ pub fn print_git_dirs(lrm: (bool, bool, bool), pm: &mut PrintMode, dur: Instant)
     }
     if lrm.2 {
         pm.normal_msg(format!(
-            "Found {} possible repository(s)! Took {} secs!\n\n",
-            collector.len(), dur.elapsed().as_secs_f32().round()
+            "Found {} possible repository(s)! Took {:.2} secs!\n\n",
+            collector.len(), dur.elapsed().as_secs_f32()
         ));
     } else if lrm.0 || lrm.1 {
         pm.normal_msg(format!(
-            "Found {} possible repository(s) that have a LICENSE! Took {} secs!\n\n",
-            collector.len(), dur.elapsed().as_secs_f32().round()
+            "Found {} possible repository(s) that have a LICENSE! Took {:.2} secs!\n\n",
+            collector.len(), dur.elapsed().as_secs_f32()
         ));
     } else {
         pm.normal_msg(format!(
-            "Found {} possible repository(s) that have no LICENSE! Took {} secs!\n\n",
-            collector.len(), dur.elapsed().as_secs_f32().round()
+            "Found {} possible repository(s) that have no LICENSE! Took {:.2} secs!\n\n",
+            collector.len(), dur.elapsed().as_secs_f32()
         ));
     }
     collector.iter().for_each(|i| {
