@@ -11,6 +11,26 @@ mod output_printer;
 mod search;
 mod error_collector;
 
+fn print_help(pmm: &PrintMode) {
+    pmm.normal_msg(
+        "LICENSE-ME\t\tA CLI-TOOL FOR LICENSING YOUR GIT REPOSITORYS!\n\n\
+        USAGE: ./license-me[.EXE] [OPTIONS]\n\n\
+        help, -h, -help, --help\t\t\tShows this prompt\n\n\
+        -d\t\t\t\t\tturns on \"DEBUG\" mode\n\n\
+        -v\t\t\t\t\tturns on \"VERBOSE\" mode\n\n\
+        If you Invoke the Program like this, you will get extra output and you can see what it does.\n\
+        In this mode, with or without debug/verbose mode, the program will find all repos WITHOUT a \"LICENSE\" file in it.\n
+        It will let you Create a \"LICENSE\" file, and it will create a README.md if none is found.\n
+        If a README.md is found, it will only append the link to your license to the end of your README.md\n\n\n\
+        [MODE-CHANGING OPTIONS]\n\n\n\
+        These options will list all git repositorys with a \"LICENSE\" file in it\n\n\n\
+        --append-license\tAdds a license to the chosen directory, and appends a Link to the end of README.md\n\n\
+        --replace-license\tIt will delete ALL license-like files in your chosen directory.\n\
+        \t\t\tCreates a new one with replacing the complete \"## License\" section in your README.md\n\n\
+        --show-all\t\tLists all git repositorys, regardless of containing a LICENSE file and aborts\n"
+    ); std::process::exit(0);
+}
+
 fn clear_term() {
     print!("\x1B[2J\x1b[1;1H");
 }
@@ -31,6 +51,7 @@ fn arg_modes(arguments: Vec<String>, pmm: &mut PrintMode) -> (bool, bool, bool) 
     let mut all_git_dirs_mode: bool = false;
     if arguments.len() > 1 {
         arguments.iter().for_each(|argument| match argument.trim() {
+            x if x == "help" || x == "-h" || x == "-help" || x == "--help" => {print_help(pmm)},
             "-d" => {
                 pmm.debug = true;
                 pmm.debug_msg("Debug Mode ON")
