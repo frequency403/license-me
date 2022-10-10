@@ -23,11 +23,11 @@ fn print_help(pmm: &PrintMode) {
         It will let you Create a \"LICENSE\" file, and it will create a README.md if none is found.\n
         If a README.md is found, it will only append the link to your license to the end of your README.md\n\n\n\
         [MODE-CHANGING OPTIONS]\n\n\n\
-        These options will list all git repositorys with a \"LICENSE\" file in it\n\n\n\
+        These options will list all git repository's with a \"LICENSE\" file in it\n\n\n\
         --append-license\tAdds a license to the chosen directory, and appends a Link to the end of README.md\n\n\
         --replace-license\tIt will delete ALL license-like files in your chosen directory.\n\
         \t\t\tCreates a new one with replacing the complete \"## License\" section in your README.md\n\n\
-        --show-all\t\tLists all git repositorys, regardless of containing a LICENSE file and aborts\n"
+        --show-all\t\tLists all git repository's, regardless of containing a LICENSE file and aborts\n"
     ); std::process::exit(0);
 }
 
@@ -54,11 +54,11 @@ fn arg_modes(arguments: Vec<String>, pmm: &mut PrintMode) -> (bool, bool, bool) 
             x if x == "help" || x == "-h" || x == "-help" || x == "--help" => {print_help(pmm)},
             "-d" => {
                 pmm.debug = true;
-                pmm.debug_msg("Debug Mode ON")
+                pmm.debug_msg("Debug Mode ON", None)
             }
             "-v" => {
                 pmm.verbose = true;
-                pmm.verbose_msg("Verbose Mode ON")
+                pmm.verbose_msg("Verbose Mode ON", None)
             }
             "--append-license" => license_append_mode = true,
             "--replace-license" => license_replace_mode = true,
@@ -87,13 +87,13 @@ fn init_search() {
                     print_mode.verbose_msg(format!(
                         "Added: {} to processing collection",
                         &collection_of_git_dirs[int as usize - 1]
-                    ));
+                    ), None);
                     chosen_directories.push(&collection_of_git_dirs[int as usize - 1]);
                 }
             }
         } else if g == "all" {
             collection_of_git_dirs.iter().for_each(|item| {
-                print_mode.verbose_msg(format!("Added: {} to processing collection", item));
+                print_mode.verbose_msg(format!("Added: {} to processing collection", item), None);
                 chosen_directories.push(item)
             });
         } else {

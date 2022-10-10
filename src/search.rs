@@ -26,23 +26,23 @@ fn walk(
 ) -> Vec<String> {
     let vec: Vec<String> = WalkDir::new(root).into_iter().filter_map(|entry| {
         if let Ok(entry) = &entry {
-            pm.debug_msg_b(format!("Searching in: {}", &entry.path().display()), progress_bar);
+            pm.debug_msg(format!("Searching in: {}", &entry.path().display()), Some(progress_bar));
             if entry.path().display().to_string().ends_with(".git") && !entry.path().display().to_string().contains('$') && !entry.path().display().to_string().contains(".cargo") {
-                pm.verbose_msg_b(format!(
+                pm.verbose_msg(format!(
                     "Found: {}",
                     &entry.path().display().to_string().replace(".git", "")
-                ), progress_bar);
+                ), Some(progress_bar));
                 let walker: PathBuf = entry.path().display().to_string().replace(".git", "LICENSE").into();
                 if lrm.2 {
-                    pm.verbose_msg_b("Adding dir to collection..", progress_bar);
+                    pm.verbose_msg("Adding dir to collection..", Some(progress_bar));
                     Some(entry.path().display().to_string())
                 } else if (lrm.0 || lrm.1) && walker.exists() {
-                    pm.verbose_msg_b("Found License file in directory", progress_bar);
-                    pm.debug_msg_b("Adding found directory to collection...", progress_bar);
+                    pm.verbose_msg("Found License file in directory", Some(progress_bar));
+                    pm.debug_msg("Adding found directory to collection...", Some(progress_bar));
                     Some(entry.path().display().to_string())
                 } else if !(lrm.0 || lrm.1 || walker.exists()) {
-                    pm.verbose_msg_b("Found no License file in directory", progress_bar);
-                    pm.debug_msg_b("Adding found directory to collection...", progress_bar);
+                    pm.verbose_msg("Found no License file in directory", Some(progress_bar));
+                    pm.debug_msg("Adding found directory to collection...", Some(progress_bar));
                     Some(entry.path().display().to_string())
                 } else { None }
             } else {
@@ -57,8 +57,8 @@ fn walk(
 fn dir_validator(dir: String, collection: &mut Vec<String>, pm: &mut PrintMode, bar: &ProgressBar) {
     if let Some(buf) = dir.strip_suffix(".git") {
         if !buf.contains(".git") {
-            pm.debug_msg_b(format!("Collected: {}", dir), bar);
-            pm.verbose_msg_b(format!("Valid: {}", dir), bar);
+            pm.debug_msg(format!("Collected: {}", dir), Some(bar));
+            pm.verbose_msg(format!("Valid: {}", dir), Some(bar));
             collection.push(dir)
         } else {
             pm.error_msg(format!("Invalid Directory: {}", dir))
@@ -69,16 +69,16 @@ pub fn print_git_dirs(lrm: (bool, bool, bool), pm: &mut PrintMode, dur: Instant)
     clear_term();
     let bar = progress_spinner();
     let mut prm = pm.clone();
-    pm.debug_msg_b("Initiation successful", &bar);
+    pm.debug_msg("Initiation successful", Some(&bar));
     let mut collector: Vec<String> = vec![];
     if cfg!(windows) {
-        pm.verbose_msg_b("Windows Filesystem Mode", &bar);
+        pm.verbose_msg("Windows Filesystem Mode", Some(&bar));
         let sys = System::new_all();
         for disk in sys.disks() {
-            pm.debug_msg_b(format!("Processing: {}", disk.mount_point().display()), &bar);
+            pm.debug_msg(format!("Processing: {}", disk.mount_point().display()), Some(&bar));
             walk(disk.mount_point().display().to_string(), &bar, lrm, pm).into_iter().filter_map(|item| {
                 if !item.is_empty() {
-                    pm.debug_msg_b(&item, &bar);
+                    pm.debug_msg(&item, Some(&bar));
                     Some(item)
                 } else {
                     None
@@ -88,10 +88,10 @@ pub fn print_git_dirs(lrm: (bool, bool, bool), pm: &mut PrintMode, dur: Instant)
             });
         }
     } else {
-        pm.verbose_msg_b("Unix Filesystem Mode", &bar);
+        pm.verbose_msg("Unix Filesystem Mode", Some(&bar));
         walk("/".to_string(), &bar, lrm, pm).into_iter().filter_map(|item| {
             if !item.is_empty() {
-                pm.debug_msg_b(&item, &bar);
+                pm.debug_msg(&item, Some(&bar));
                 Some(item)
             } else {
                 None
