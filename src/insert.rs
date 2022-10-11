@@ -131,14 +131,9 @@ fn replace_in_readme(
     if let Ok(mut file_content) = File::open(readme_path) {
         let mut old_file_content = String::new();
         if file_content.read_to_string(&mut old_file_content).is_ok() {
-            let slices_of_old_file = &mut old_file_content
-                .split_inclusive("##")
-                .collect::<Vec<&str>>();
+            let slices_of_old_file = &mut old_file_content.split_inclusive("##").collect::<Vec<&str>>();
             if let Some(index_of_license) = slices_of_old_file.iter().position(|&c| {
-                c.contains(" License ")
-                    || c.contains(" LICENSE ")
-                    || c.contains(" License\n")
-                    || c.contains(" LICENSE\n")
+                c.contains(" License ") || c.contains(" LICENSE ") || c.contains(" License\n") || c.contains(" LICENSE\n")
             }) {
                 if let Some(content) = slices_of_old_file.last() {
                     if content == &slices_of_old_file[index_of_license] {
@@ -175,26 +170,21 @@ fn replace_in_readme(
 fn delete_license_files(path: &mut PathBuf, pm: &mut PrintMode) {
     path.pop();
     let mut vec: Vec<String> = Vec::new();
-    WalkDir::new(&path).max_depth(1)
-        .into_iter()
-        .filter_map(|files| {
-            if let Ok(dir_entry) = files {
-                if dir_entry.path().display().to_string().contains("LICENSE")
-                    || dir_entry.path().display().to_string().contains("License")
-                {
-                    Some(dir_entry.path().display().to_string())
-                } else {
-                    None
-                }
+    WalkDir::new(&path).max_depth(1).into_iter().filter_map(|files| {
+        if let Ok(dir_entry) = files {
+            if dir_entry.path().display().to_string().contains("LICENSE") || dir_entry.path().display().to_string().contains("License") {
+                Some(dir_entry.path().display().to_string())
             } else {
                 None
             }
-        }).for_each(|i| vec.push(i));
-    vec.into_iter()
-        .for_each(|file| match std::fs::remove_file(&file) {
-            Ok(_) => pm.verbose_msg(format!("Deleted: {}", &file), None),
-            Err(msg) => pm.error_msg(format!("{} occurred \nduring deletion of {}", msg, file)),
-        });
+        } else {
+            None
+        }
+    }).for_each(|i| vec.push(i));
+    vec.into_iter().for_each(|file| match std::fs::remove_file(&file) {
+        Ok(_) => pm.verbose_msg(format!("Deleted: {}", &file), None),
+        Err(msg) => pm.error_msg(format!("{} occurred \nduring deletion of {}", msg, file)),
+    });
     path.push("LICENSE");
 }
 
@@ -207,9 +197,7 @@ pub fn insert_license(
     let license = get_license_ver(pm);
     let i = &paths.len();
     clear_term();
-    paths
-        .iter_mut()
-        .for_each(|path| pm.verbose_msg(format!("Chosen path(s): {}", path.replace(".git", "")), None));
+    paths.iter_mut().for_each(|path| pm.verbose_msg(format!("Chosen path(s): {}", path.replace(".git", "")), None));
     paths.into_iter().for_each(|dir| {
         pm.verbose_msg(format!("Processing dir: {}", dir.replace(".git", "")), None);
         let readme_path: PathBuf = dir.replace(".git", "README.md").into();

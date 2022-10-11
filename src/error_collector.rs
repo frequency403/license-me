@@ -2,7 +2,7 @@ use crate::PrintMode;
 
 #[derive(Debug, Clone)]
 pub struct ErrorCollector {
-    collection: Vec<String>
+    collection: Vec<String>,
 }
 
 impl ErrorCollector {

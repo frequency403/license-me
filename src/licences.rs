@@ -3,8 +3,9 @@ use chrono::prelude::*;
 pub fn year() -> String {
     Utc::today().year().to_string()
 }
+
 pub fn readme(title: String) -> String {
-    ["# ", title.to_uppercase().as_str() ,"
+    ["# ", title.to_uppercase().as_str(), "
 
 Enter your text here.
 
@@ -59,12 +60,12 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.",
-        ]
-        .concat(),
+        ].concat(),
         ["[MIT License", "](https://opensource.org/licenses/MIT)"].concat(),
         "MIT".to_string(),
     )
 }
+
 pub fn apache2(username: String) -> (String, String, String) {
     (
         [
@@ -85,19 +86,17 @@ pub fn apache2(username: String) -> (String, String, String) {
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.",
-        ]
-        .concat(),
+        ].concat(),
         [
             "[Apache License 2.0 ",
             "](https://www.apache.org/licenses/LICENSE-2.0)",
-        ]
-        .concat(),
+        ].concat(),
         "APACHE".to_string(),
     )
 }
 
 pub fn bsd3(username: String) -> (String, String, String) {
-    (["Copyright ", year().as_str(), " " ,username.as_str(),"
+    (["Copyright ", year().as_str(), " ", username.as_str(), "
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -113,7 +112,7 @@ PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS B
 INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT \n
 OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON \n
 ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING \n
-IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."].concat(), 
+IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."].concat(),
      ["[BSD 3-Clause \"New\" or \"Revised\" license](https://opensource.org/licenses/BSD-3-Clause)"].concat(), "BSD3".to_string())
 }
 
@@ -140,9 +139,8 @@ INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, B
 OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON \n
 ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING \n
 IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.",
-        ]
-        .concat(),
-        "[BSD 2-Clause \"Simplified\" or \"FreeBSD\" license](https://opensource.org/licenses/BSD-2-Clause)".to_string(), 
+        ].concat(),
+        "[BSD 2-Clause \"Simplified\" or \"FreeBSD\" license](https://opensource.org/licenses/BSD-2-Clause)".to_string(),
         "BSD2".to_string()
     )
 }
@@ -488,10 +486,8 @@ proprietary programs.  If your program is a subroutine library, you may
 consider it more useful to permit linking proprietary applications with the
 library.  If this is what you want to do, use the GNU Lesser General
 Public License instead of this License.
-"]
-        .concat(),
-        "[GNU General Public License, version 2](https://opensource.org/licenses/GPL-2.0)"
-            .to_string(),
+"].concat(),
+        "[GNU General Public License, version 2](https://opensource.org/licenses/GPL-2.0)".to_string(),
         "GPL2".to_string(),
     )
 }
@@ -1172,10 +1168,8 @@ may consider it more useful to permit linking proprietary applications with
 the library.  If this is what you want to do, use the GNU Lesser General
 Public License instead of this License.  But first, please read
 <https://www.gnu.org/licenses/why-not-lgpl.html>.
-"]
-        .concat(),
-        ["[GNU General Public License version 3](https://opensource.org/licenses/GPL-3.0)"]
-            .concat(),
+"].concat(),
+        ["[GNU General Public License version 3](https://opensource.org/licenses/GPL-3.0)"].concat(),
         "GPL3".to_string(),
     )
 }
@@ -1664,8 +1658,7 @@ library `Frob' (a library for tweaking knobs) written by James Random Hacker.
 <signature of Ty Coon>, 1 April 1990
 Ty Coon, President of Vice
 
-That's all there is to it!"]
-        .concat(),
+That's all there is to it!"].concat(),
         ["[GNU Library General Public License version 2](https://opensource.org/licenses/LGPL-2.0)"].concat(),
         "LGPL2".to_string(),
     )
@@ -1841,8 +1834,7 @@ Yoyodyne, Inc., hereby disclaims all copyright interest in the library `Frob' (a
 signature of Ty Coon, 1 April 1990
 Ty Coon, President of Vice
 
-That's all there is to it!"]
-        .concat(),
+That's all there is to it!"].concat(),
         ["[GNU Lesser General Public License version 2.1](https://opensource.org/licenses/LGPL-2.1)"].concat(),
         "LGPL21".to_string(),
     )
@@ -1912,8 +1904,7 @@ The Free Software Foundation may publish revised and/or new versions of the GNU 
 
 Each version is given a distinguishing version number. If the Library as you received it specifies that a certain numbered version of the GNU Lesser General Public License “or any later version” applies to it, you have the option of following the terms and conditions either of that published version or of any later version published by the Free Software Foundation. If the Library as you received it does not specify a version number of the GNU Lesser General Public License, you may choose any version of the GNU Lesser General Public License ever published by the Free Software Foundation.
 
-If the Library as you received it specifies that a proxy can decide whether future versions of the GNU Lesser General Public License shall apply, that proxy's public statement of acceptance of any version is permanent authorization for you to choose that version for the Library."]
-        .concat(),
+If the Library as you received it specifies that a proxy can decide whether future versions of the GNU Lesser General Public License shall apply, that proxy's public statement of acceptance of any version is permanent authorization for you to choose that version for the Library."].concat(),
         ["[GNU Lesser General Public License version 3](https://opensource.org/licenses/LGPL-3.0)"].concat(),
         "LGPL3".to_string(),
     )
@@ -2069,10 +2060,8 @@ If it is not possible or desirable to put the notice in a particular file, then 
 You may add additional accurate notices of copyright ownership.
 
 Exhibit B - “Incompatible With Secondary Licenses” Notice
-This Source Code Form is “Incompatible With Secondary Licenses”, as defined by the Mozilla Public License, v. 2.0."]
-        .concat(),
-        ["[Mozilla Public License 2.0 (MPL-2.0)](https://opensource.org/licenses/MPL-2.0)"]
-            .concat(),
+This Source Code Form is “Incompatible With Secondary Licenses”, as defined by the Mozilla Public License, v. 2.0."].concat(),
+        ["[Mozilla Public License 2.0 (MPL-2.0)](https://opensource.org/licenses/MPL-2.0)"].concat(),
         "MPL2".to_string(),
     )
 }
@@ -2209,8 +2198,7 @@ This License represents the complete agreement concerning subject matter hereof.
 
 10. RESPONSIBILITY FOR CLAIMS.
 
-As between Initial Developer and the Contributors, each party is responsible for claims and damages arising, directly or indirectly, out of its utilization of rights under this License and You agree to work with Initial Developer and Contributors to distribute such responsibility on an equitable basis. Nothing herein is intended or shall be deemed to constitute any admission of liability."]
-        .concat(),
+As between Initial Developer and the Contributors, each party is responsible for claims and damages arising, directly or indirectly, out of its utilization of rights under this License and You agree to work with Initial Developer and Contributors to distribute such responsibility on an equitable basis. Nothing herein is intended or shall be deemed to constitute any admission of liability."].concat(),
         ["[Common Development and Distribution License 1.0](https://opensource.org/licenses/CDDL-1.0)"].concat(),
         "CDDL".to_string(),
     )
@@ -2298,8 +2286,7 @@ Simply including a copy of this Agreement, including this Exhibit A is not suffi
 
 If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
 
-You may add additional accurate notices of copyright ownership."]
-        .concat(),
+You may add additional accurate notices of copyright ownership."].concat(),
         ["[Eclipse Public License version 2.0](https://opensource.org/licenses/EPL-2.0)"].concat(),
         "EPL".to_string(),
     )

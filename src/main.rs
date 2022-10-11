@@ -28,7 +28,8 @@ fn print_help(pmm: &PrintMode) {
         --replace-license\tIt will delete ALL license-like files in your chosen directory.\n\
         \t\t\tCreates a new one with replacing the complete \"## License\" section in your README.md\n\n\
         --show-all\t\tLists all git repository's, regardless of containing a LICENSE file and aborts\n"
-    ); std::process::exit(0);
+    );
+    std::process::exit(0);
 }
 
 fn clear_term() {
@@ -37,8 +38,7 @@ fn clear_term() {
 
 fn read_input(prompt: &str) -> String {
     let mut s = String::new();
-    print!("\n\n");
-    println!("{}", prompt);
+    println!("\n\n{}", prompt);
     if stdin().read_line(&mut s).is_err() {
         std::process::exit(1);
     };
@@ -51,7 +51,7 @@ fn arg_modes(arguments: Vec<String>, pmm: &mut PrintMode) -> (bool, bool, bool) 
     let mut all_git_dirs_mode: bool = false;
     if arguments.len() > 1 {
         arguments.iter().for_each(|argument| match argument.trim() {
-            x if x == "help" || x == "-h" || x == "-help" || x == "--help" => {print_help(pmm)},
+            x if x == "help" || x == "-h" || x == "-help" || x == "--help" => { print_help(pmm) }
             "-d" => {
                 pmm.debug = true;
                 pmm.debug_msg("Debug Mode ON", None)
@@ -75,9 +75,11 @@ fn init_search() {
     let operating_mode: (bool, bool, bool) = arg_modes(args().collect::<Vec<String>>(), &mut print_mode);
     let mut chosen_directories: Vec<&String> = vec![];
     let collection_of_git_dirs: Vec<String> = search::print_git_dirs(operating_mode, &mut print_mode, sys_time);
-    if operating_mode.2 {print_mode.normal_msg("\n\nPlease run again for modifying the directories\n");return}
-    let input_of_user: String =
-        read_input("Enter the number(s) of the repository's to select them: ");
+    if operating_mode.2 {
+        print_mode.normal_msg("\n\nPlease run again for modifying the directories\n");
+        return;
+    }
+    let input_of_user: String = read_input("Enter the number(s) of the repository's to select them: ");
     input_of_user.split_terminator(' ').for_each(|g| {
         if let Ok(int) = g.trim().parse::<isize>() {
             if int.is_positive() {
@@ -102,7 +104,7 @@ fn init_search() {
         }
     });
     let p_dirs = insert::insert_license(chosen_directories, operating_mode, &mut print_mode);
-    print_mode.err_col.list_errors(p_dirs,&print_mode)
+    print_mode.err_col.list_errors(p_dirs, &print_mode)
 }
 
 fn main() {

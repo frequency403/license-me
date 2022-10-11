@@ -24,7 +24,7 @@ fn walk(
     lrm: (bool, bool, bool),
     pm: &mut PrintMode,
 ) -> Vec<String> {
-    let vec: Vec<String> = WalkDir::new(root).into_iter().filter_map(|entry| {
+    WalkDir::new(root).into_iter().filter_map(|entry| {
         if let Ok(entry) = &entry {
             pm.debug_msg(format!("Searching in: {}", &entry.path().display()), Some(progress_bar));
             if entry.path().display().to_string().ends_with(".git") && !entry.path().display().to_string().contains('$') && !entry.path().display().to_string().contains(".cargo") {
@@ -51,9 +51,9 @@ fn walk(
         } else {
             None
         }
-    }).collect();
-    vec
+    }).collect::<Vec<String>>()
 }
+
 fn dir_validator(dir: String, collection: &mut Vec<String>, pm: &mut PrintMode, bar: &ProgressBar) {
     if let Some(buf) = dir.strip_suffix(".git") {
         if !buf.contains(".git") {
@@ -65,6 +65,7 @@ fn dir_validator(dir: String, collection: &mut Vec<String>, pm: &mut PrintMode, 
         }
     }
 }
+
 pub fn print_git_dirs(lrm: (bool, bool, bool), pm: &mut PrintMode, dur: Instant) -> Vec<String> {
     clear_term();
     let bar = progress_spinner();
@@ -127,7 +128,6 @@ pub fn print_git_dirs(lrm: (bool, bool, bool), pm: &mut PrintMode, dur: Instant)
             pm.normal_msg(format!("[{}] \"{}\"", int + 1, i.replace(".git", "")));
         }
     });
-
     collector
 }
 
