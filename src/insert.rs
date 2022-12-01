@@ -81,8 +81,8 @@ fn write_license_file(
 
 fn write_readme(readme_path: &PathBuf, current_dir: &str, pm: &mut PrintMode) {
     let project_title = get_project_title(current_dir, pm);
-    if File::create(&readme_path).is_ok() {
-        match std::fs::write(&readme_path, readme(project_title)) {
+    if File::create(readme_path).is_ok() {
+        match std::fs::write(readme_path, readme(project_title)) {
             Ok(_) => {
                 pm.verbose_msg(format!("created {}!", readme_path.display()), None);
                 pm.verbose_msg("This is a dummy readme and should be replaced!", None)

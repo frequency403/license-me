@@ -1,7 +1,7 @@
 use chrono::prelude::*;
 
 pub fn year() -> String {
-    Utc::today().year().to_string()
+    Utc::now().year().to_string()
 }
 
 pub fn readme(title: String) -> String {
