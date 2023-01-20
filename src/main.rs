@@ -4,12 +4,16 @@ use std::time::Instant;
 
 use crate::output_printer::*;
 
+// Import the other files
 
 mod insert;
 mod licences;
 mod output_printer;
 mod search;
 mod error_collector;
+
+// Prints CLI-Help & exits
+// Uses the PrintMode message Method
 
 fn print_help(pmm: &PrintMode) {
     pmm.normal_msg(
@@ -32,9 +36,15 @@ fn print_help(pmm: &PrintMode) {
     std::process::exit(0);
 }
 
+// Clears the Terminal
+// Same as "clear"
+
 fn clear_term() {
     print!("\x1B[2J\x1b[1;1H");
 }
+
+// Helper Function for reading user-input which prompts the user with a Message
+// Also trims whitespaces
 
 fn read_input(prompt: &str) -> String {
     let mut s = String::new();
@@ -45,43 +55,81 @@ fn read_input(prompt: &str) -> String {
     s.trim().to_string()
 }
 
+// Decides on the given arguments,
+// which mode the program is running.
+
 fn arg_modes(arguments: Vec<String>, pmm: &mut PrintMode) -> (bool, bool, bool) {
+    // Uses a Vec<String> as container for the program Arguments
+
     let mut license_append_mode: bool = false;
     let mut license_replace_mode: bool = false;
     let mut all_git_dirs_mode: bool = false;
+    // If there is an argument.....
     if arguments.len() > 1 {
+        // Iterate over every argument, then....
         arguments.iter().for_each(|argument| match argument.trim() {
+
+            // Print help text
             x if x == "help" || x == "-h" || x == "-help" || x == "--help" => { print_help(pmm) }
+
+            // Set the debug mode
             "-d" => {
                 pmm.debug = true;
                 pmm.debug_msg("Debug Mode ON", None)
             }
+
+            // Set the verbose mode
             "-v" => {
                 pmm.verbose = true;
                 pmm.verbose_msg("Verbose Mode ON", None)
             }
+
+            // Append/Add a LICENSE to a repo
             "--append-license" => license_append_mode = true,
+
+            // Replaces the LICENSE file
             "--replace-license" => license_replace_mode = true,
+
+            // Show all git-repositorys, regardless of the license status
             "--show-all" => all_git_dirs_mode = true,
             _ => {}
         })
     }
+    // Return 3 bools in a tuple
     (license_append_mode, license_replace_mode, all_git_dirs_mode)
 }
 
-fn init_search() {
+fn main() {
+    // Starting time measurement
     let sys_time: Instant = Instant::now();
+
+    // Init the Print mode Struct
     let mut print_mode: PrintMode = PrintMode::norm();
+
+    // Check the given arguments
     let operating_mode: (bool, bool, bool) = arg_modes(args().collect::<Vec<String>>(), &mut print_mode);
+
+    // Init empty Vector for the directories, that the user wants to edit
     let mut chosen_directories: Vec<&String> = vec![];
+
+    // Collection of found directories, containing the absolute path as string
     let collection_of_git_dirs: Vec<String> = search::print_git_dirs(operating_mode, &mut print_mode, sys_time);
+
+    // If the user just wanted to see how many git directories he has....
     if operating_mode.2 {
         print_mode.normal_msg("\n\nPlease run again for modifying the directories\n");
+        // then abort program.
         return;
     }
+
+    // Using the helper function for reading the Input
     let input_of_user: String = read_input("Enter the number(s) of the repository's to select them: ");
+
+    // Split string on Whitespace, which creates a vector
     input_of_user.split_terminator(' ').for_each(|g| {
+        // For each element of the vector, try to parse the string as int
         if let Ok(int) = g.trim().parse::<isize>() {
+            // On purpose used "signed" int's, that the error can be caught here
             if int.is_positive() {
                 if collection_of_git_dirs.len() < int as usize || int == 0 {
                     print_mode.error_msg(format!("Index {} not available", int))
@@ -90,23 +138,25 @@ fn init_search() {
                         "Added: {} to processing collection",
                         &collection_of_git_dirs[int as usize - 1]
                     ), None);
+                    // Push chosen dirs to the empty collection - also correct the Index with "-1"
                     chosen_directories.push(&collection_of_git_dirs[int as usize - 1]);
                 }
             }
+            // Use all directories you found
         } else if g == "all" {
             collection_of_git_dirs.iter().for_each(|item| {
                 print_mode.verbose_msg(format!("Added: {} to processing collection", item), None);
                 chosen_directories.push(item)
             });
+            // If something goes wrong
         } else {
             print_mode.error_msg("Invalid input - aborting....");
             std::process::exit(1)
         }
     });
+    // Here starts the main work -> see insert.rs
     let p_dirs = insert::insert_license(chosen_directories, operating_mode, &mut print_mode);
-    print_mode.err_col.list_errors(p_dirs, &print_mode)
-}
 
-fn main() {
-    init_search();
+    // Print all errors the program collected at last.
+    print_mode.err_col.list_errors(p_dirs, &print_mode)
 }

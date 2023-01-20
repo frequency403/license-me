@@ -1,9 +1,19 @@
 use chrono::prelude::*;
 
+// Here are the License Texts and a Dummy readme.
+// Every function (except the "year()" function) returns a 3-String Tuple
+// (License Text, Readme Link in Markdown, Shortcut of License)
+
+// The last item is used, when a license is added to a existing one
+// i.e. the new license will be named "LICENSE-MIT" if a license would exist and the user
+// wants to add the MIT License to the existing project
+
+// Gets the Current Year as string
 pub fn year() -> String {
     Utc::today().year().to_string()
 }
 
+// Create a Dummy README.md with a Project title named after the directory containing the Sourcecode
 pub fn readme(title: String) -> String {
     ["# ", title.to_uppercase().as_str(), "
 
