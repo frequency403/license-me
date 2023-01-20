@@ -10,7 +10,7 @@ use chrono::prelude::*;
 
 // Gets the Current Year as string
 pub fn year() -> String {
-    Utc::today().year().to_string()
+    Utc::now().year().to_string()
 }
 
 // Create a Dummy README.md with a Project title named after the directory containing the Sourcecode
