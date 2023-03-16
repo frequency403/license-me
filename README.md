@@ -47,12 +47,13 @@ License section. Then the README.md will be overwritten. So there **SHOULD** be 
 Download the Sourcecode, then in the directory execute in terminal:
 
 ```bash
-cargo build --release
-#unix
-cp $(pwd)/target/release/license-me /bin/
-#windows
+cargo install --path .
+```
 
-#copy the "license-me.exe" from .../target/release/ to anywhere you like
+### Install Using Cargo
+
+```bash
+cargo install --git https://github.com/frequency403/license-me.git
 ```
 ### Download pre-built binary's
 
