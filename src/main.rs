@@ -24,6 +24,7 @@ mod api_communicator;
 mod operating_mode;
 mod walker;
 mod git_dir;
+mod settings_file;
 
 // Prints CLI-Help & exits
 // Uses the PrintMode message Method
