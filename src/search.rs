@@ -1,13 +1,14 @@
 use indicatif::{ProgressBar, ProgressStyle};
-use std::path::PathBuf;
 use std::time::Instant;
 use sysinfo::{DiskExt, System, SystemExt};
+use tokio::task::JoinHandle;
 use walkdir::WalkDir;
 
 use crate::{clear_term, PrintMode};
+use crate::operating_mode::OperatingMode;
 
 // Using a ProgressBar (spinner) from the crate "ProgressBar"
-fn progress_spinner() -> ProgressBar {
+pub fn progress_spinner() -> ProgressBar {
     // Init main struct
     let p_bar = ProgressBar::new_spinner();
     // Set the style and the tick strings, iterating over all but not the last item every tick
@@ -24,10 +25,10 @@ fn progress_spinner() -> ProgressBar {
 
 // This function "walks" through every directory and checks after a pattern, if the directory can be a git directory
 // Then it returns the collection of dirs it found
-fn walk(
+async fn walk(
     root: String, // Can be "/" in Unix, or "C:\", "D:\", etc...
     progress_bar: &ProgressBar,
-    lrm: (bool, bool, bool),
+    lrm: &OperatingMode,
     pm: &mut PrintMode,
 ) -> Vec<String> {
     // Using Iterators for performance reasons
@@ -43,22 +44,35 @@ fn walk(
                     "Found: {}",
                     &entry.path().display().to_string().replace(".git", "")
                 ), Some(progress_bar));
-                let walker: PathBuf = entry.path().display().to_string().replace(".git", "LICENSE").into(); // Build a temporary License Path
-                if lrm.2 {
-                    // Add all found dirs to the collection
-                    pm.verbose_msg("Adding dir to collection..", Some(progress_bar));
-                    Some(entry.path().display().to_string())
-                } else if (lrm.0 || lrm.1) && walker.exists() {
-                    // Add all dirs where a license file is found (Append or Replace mode)
-                    pm.verbose_msg("Found License file in directory", Some(progress_bar));
-                    pm.debug_msg("Adding found directory to collection...", Some(progress_bar));
-                    Some(entry.path().display().to_string())
-                } else if !(lrm.0 || lrm.1 || walker.exists()) {
-                    // Add all dirs where no license file is found
-                    pm.verbose_msg("Found no License file in directory", Some(progress_bar));
-                    pm.debug_msg("Adding found directory to collection...", Some(progress_bar));
-                    Some(entry.path().display().to_string())
-                } else { None }
+
+                // TODO Delete
+                // let walker: PathBuf = entry.path().display().to_string().replace(".git", "LICENSE").into(); // Build a temporary License Path
+
+                return match lrm {
+                    OperatingMode::AppendLicense => {
+                        // Add all dirs where a license file is found (Append or Replace mode)
+                        pm.verbose_msg("Found License file in directory", Some(progress_bar));
+                        pm.debug_msg("Adding found directory to collection...", Some(progress_bar));
+                        Some(entry.path().display().to_string())
+                    }
+                    OperatingMode::LicenseReplace => {
+                        // Add all dirs where a license file is found (Append or Replace mode)
+                        pm.verbose_msg("Found License file in directory", Some(progress_bar));
+                        pm.debug_msg("Adding found directory to collection...", Some(progress_bar));
+                        Some(entry.path().display().to_string())
+                    }
+                    OperatingMode::ShowAllGitDirs => {
+                        // Add all found dirs to the collection
+                        pm.verbose_msg("Adding dir to collection..", Some(progress_bar));
+                        Some(entry.path().display().to_string())
+                    }
+                    OperatingMode::SetNewLicense => {
+                        // Add all dirs where no license file is found
+                        pm.verbose_msg("Found no License file in directory", Some(progress_bar));
+                        pm.debug_msg("Adding found directory to collection...", Some(progress_bar));
+                        Some(entry.path().display().to_string())
+                    }
+                }
             } else {
                 None
             }
@@ -86,7 +100,7 @@ fn dir_validator(dir: String, collection: &mut Vec<String>, pm: &mut PrintMode, 
 // Prints the Git directories, containing the calls to the collector-functions
 // The "dur" parameter is for time measuring
 
-pub fn print_git_dirs(lrm: (bool, bool, bool), pm: &mut PrintMode, dur: Instant) -> Vec<String> {
+pub async fn print_git_dirs(lrm: &OperatingMode, pm: &mut PrintMode, dur: Instant) -> Vec<String> {
     clear_term();
     // Init Progress spinner
     let bar = progress_spinner();
@@ -100,14 +114,13 @@ pub fn print_git_dirs(lrm: (bool, bool, bool), pm: &mut PrintMode, dur: Instant)
     // If system is Windows....
     if cfg!(windows) {
         pm.verbose_msg("Windows Filesystem Mode", Some(&bar));
-
         // Use new crate "sysinfo", where any plugged disks can be shown
         let sys = System::new_all();
 
         for disk in sys.disks() {
             pm.debug_msg(format!("Processing: {}", disk.mount_point().display()), Some(&bar));
             // Every found disk is used as "root" variable for the "walk" function
-            walk(disk.mount_point().display().to_string(), &bar, lrm, pm).into_iter().filter_map(|item| {
+            walk(disk.mount_point().display().to_string(), &bar, lrm, pm).await.into_iter().filter_map(|item| {
                 if !item.is_empty() {
                     pm.debug_msg(&item, Some(&bar));
                     Some(item)
@@ -122,7 +135,7 @@ pub fn print_git_dirs(lrm: (bool, bool, bool), pm: &mut PrintMode, dur: Instant)
     } else {
         pm.verbose_msg("Unix Filesystem Mode", Some(&bar));
         // Using "/" as the root for the "walk" function in Unix mode
-        walk("/".to_string(), &bar, lrm, pm).into_iter().filter_map(|item| {
+        walk("/".to_string(), &bar, lrm, pm).await.into_iter().filter_map(|item| {
             if !item.is_empty() {
                 pm.debug_msg(&item, Some(&bar));
                 Some(item)
@@ -145,26 +158,35 @@ pub fn print_git_dirs(lrm: (bool, bool, bool), pm: &mut PrintMode, dur: Instant)
     }
 
     // Any of the following messages contains the elapsed time since invocation of the program.
-
-    if lrm.2 {
-        // If all git dirs should be printed
-        pm.normal_msg(format!(
-            "Found {} possible repository(s)! Took {:.2} secs!\n\n",
-            collector.len(), dur.elapsed().as_secs_f32()
-        ));
-    } else if lrm.0 || lrm.1 {
-        // If there is a license file in directory
-        pm.normal_msg(format!(
-            "Found {} possible repository(s) that have a LICENSE! Took {:.2} secs!\n\n",
-            collector.len(), dur.elapsed().as_secs_f32()
-        ));
-    } else {
-        // If there is no license file in directory
-        pm.normal_msg(format!(
-            "Found {} possible repository(s) that have no LICENSE! Took {:.2} secs!\n\n",
-            collector.len(), dur.elapsed().as_secs_f32()
-        ));
+    match lrm {
+        OperatingMode::AppendLicense => {
+            // If there is a license file in directory
+            pm.normal_msg(format!(
+                "Found {} possible repository(s) that have a LICENSE! Took {:.2} secs!\n\n",
+                collector.len(), dur.elapsed().as_secs_f32()
+            ));
+            }
+        OperatingMode::LicenseReplace => {
+            // If there is a license file in directory
+            pm.normal_msg(format!(
+                "Found {} possible repository(s) that have a LICENSE! Took {:.2} secs!\n\n",
+                collector.len(), dur.elapsed().as_secs_f32()
+            ));}
+        OperatingMode::ShowAllGitDirs => {
+            // If all git dirs should be printed
+            pm.normal_msg(format!(
+                "Found {} possible repository(s)! Took {:.2} secs!\n\n",
+                collector.len(), dur.elapsed().as_secs_f32()
+            ));}
+        OperatingMode::SetNewLicense => {
+            // If there is no license file in directory
+            pm.normal_msg(format!(
+                "Found {} possible repository(s) that have no LICENSE! Took {:.2} secs!\n\n",
+                collector.len(), dur.elapsed().as_secs_f32()
+            ));
+        }
     }
+
     // For each collector Entry, print out the directories
     // i.e. [1] C:\.....
     //      [2] D:\.....

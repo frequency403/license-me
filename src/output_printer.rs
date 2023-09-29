@@ -9,7 +9,6 @@ use crate::error_collector::*;
 
 // The PrintMode Structure will decide on the given bool's if the message is printed or not.
 
-
 #[derive(Debug, Clone)]
 pub struct PrintMode {
     pub(crate) verbose: bool,

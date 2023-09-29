@@ -1,16 +1,29 @@
 use std::env::args;
+use std::future::Future;
 use std::io::stdin;
+use std::sync::mpsc::{channel, Receiver, Sender};
 use std::time::Instant;
+use futures::TryFuture;
+use sysinfo::{DiskExt, System, SystemExt};
+use crate::api_communicator::communicate;
+use crate::git_dir::GitDir;
+use crate::operating_mode::OperatingMode;
 
 use crate::output_printer::*;
+use crate::search::progress_spinner;
+use crate::walker::start_walking;
 
 // Import the other files
-
 mod insert;
 mod licences;
 mod output_printer;
 mod search;
 mod error_collector;
+mod github_license;
+mod api_communicator;
+mod operating_mode;
+mod walker;
+mod git_dir;
 
 // Prints CLI-Help & exits
 // Uses the PrintMode message Method
@@ -57,13 +70,10 @@ fn read_input(prompt: &str) -> String {
 
 // Decides on the given arguments,
 // which mode the program is running.
-
-fn arg_modes(arguments: Vec<String>, pmm: &mut PrintMode) -> (bool, bool, bool) {
+fn arg_modes(arguments: Vec<String>, pmm: &mut PrintMode) -> OperatingMode {
     // Uses a Vec<String> as container for the program Arguments
 
-    let mut license_append_mode: bool = false;
-    let mut license_replace_mode: bool = false;
-    let mut all_git_dirs_mode: bool = false;
+    let mut op_mode: OperatingMode = OperatingMode::SetNewLicense;
     // If there is an argument.....
     if arguments.len() > 1 {
         // Iterate over every argument, then....
@@ -85,21 +95,47 @@ fn arg_modes(arguments: Vec<String>, pmm: &mut PrintMode) -> (bool, bool, bool) 
             }
 
             // Append/Add a LICENSE to a repo
-            "--append-license" => license_append_mode = true,
+            "--append-license" => {op_mode = OperatingMode::AppendLicense },
 
             // Replaces the LICENSE file
-            "--replace-license" => license_replace_mode = true,
+            "--replace-license" => {op_mode = OperatingMode::LicenseReplace },
 
             // Show all git-repositorys, regardless of the license status
-            "--show-all" => all_git_dirs_mode = true,
+            "--show-all" => {op_mode = OperatingMode::ShowAllGitDirs },
             _ => {}
         })
     }
-    // Return 3 bools in a tuple
-    (license_append_mode, license_replace_mode, all_git_dirs_mode)
+    op_mode
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
+    // if let Some(license) = communicate().await {
+    //     println!("{}",license.set_username_and_year().body)
+    // } else {
+    //     println!("Error")
+    // }
+    // let vecs = tokio::spawn(start_walking("C:\\"));
+    // let c = vecs.await.unwrap();
+    let s = System::new_all();
+    let sys_time: Instant = Instant::now();
+    let op = OperatingMode::ShowAllGitDirs;
+    let mut found_dirs: Vec<GitDir> = vec![];
+    let bar = progress_spinner();
+    let (sender, reciever): (Sender<usize>, Receiver<usize>) = channel();
+    for disk in s.disks() {
+        let handle = tokio::spawn( start_walking(sender.clone(), disk.mount_point().display().to_string(), op));
+        if let Ok(vec) = handle.await {
+            vec.iter().for_each(|slf| {
+                if !found_dirs.contains(slf) {
+                    found_dirs.push(slf.clone()) }
+            });
+        }
+    }
+    bar.finish();
+    println!("Took {}s, found {} Dirs, Processed {} Directories", sys_time.elapsed().as_secs(), found_dirs.len(), reciever.iter().count());
+    return;
+
     // Starting time measurement
     let sys_time: Instant = Instant::now();
 
@@ -107,16 +143,16 @@ fn main() {
     let mut print_mode: PrintMode = PrintMode::norm();
 
     // Check the given arguments
-    let operating_mode: (bool, bool, bool) = arg_modes(args().collect::<Vec<String>>(), &mut print_mode);
+    let operating_mode: OperatingMode = arg_modes(args().collect::<Vec<String>>(), &mut print_mode);
 
     // Init empty Vector for the directories, that the user wants to edit
     let mut chosen_directories: Vec<&String> = vec![];
 
     // Collection of found directories, containing the absolute path as string
-    let collection_of_git_dirs: Vec<String> = search::print_git_dirs(operating_mode, &mut print_mode, sys_time);
+    let collection_of_git_dirs: Vec<String> = search::print_git_dirs(&operating_mode, &mut print_mode, sys_time).await;
 
     // If the user just wanted to see how many git directories he has....
-    if operating_mode.2 {
+    if operating_mode == OperatingMode::ShowAllGitDirs {
         print_mode.normal_msg("\n\nPlease run again for modifying the directories\n");
         // then abort program.
         return;
@@ -155,8 +191,8 @@ fn main() {
         }
     });
     // Here starts the main work -> see insert.rs
-    let p_dirs = insert::insert_license(chosen_directories, operating_mode, &mut print_mode);
+    let p_dirs = insert::insert_license(chosen_directories, &operating_mode, &mut print_mode);
 
     // Print all errors the program collected at last.
-    print_mode.err_col.list_errors(p_dirs, &print_mode)
+    print_mode.err_col.list_errors(p_dirs.await, &print_mode)
 }
