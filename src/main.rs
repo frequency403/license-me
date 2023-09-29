@@ -137,6 +137,11 @@ async fn main() {
     println!("Took {}s, found {} Dirs, Processed {} Directories", sys_time.elapsed().as_secs(), found_dirs.len(), reciever.iter().count());
     return;
 
+
+    // END OF TEST SECTION
+    // STARTING "NORMAL" SECTION HERE
+
+
     // Starting time measurement
     let sys_time: Instant = Instant::now();
 
