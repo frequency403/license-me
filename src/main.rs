@@ -11,6 +11,7 @@ use crate::operating_mode::OperatingMode;
 
 use crate::output_printer::*;
 use crate::search::progress_spinner;
+use crate::settings_file::ProgramSettings;
 use crate::walker::start_walking;
 
 // Import the other files
@@ -118,25 +119,10 @@ async fn main() {
     // }
     // let vecs = tokio::spawn(start_walking("C:\\"));
     // let c = vecs.await.unwrap();
-    let s = System::new_all();
-    let sys_time: Instant = Instant::now();
-    let op = OperatingMode::ShowAllGitDirs;
-    let mut found_dirs: Vec<GitDir> = vec![];
-    let bar = progress_spinner();
-    let (sender, reciever): (Sender<usize>, Receiver<usize>) = channel();
-    for disk in s.disks() {
-        let handle = tokio::spawn( start_walking(sender.clone(), disk.mount_point().display().to_string(), op));
-        if let Ok(vec) = handle.await {
-            vec.iter().for_each(|slf| {
-                if !found_dirs.contains(slf) {
-                    found_dirs.push(slf.clone()) }
-            });
-        }
-    }
-    bar.finish();
-    println!("Took {}s, found {} Dirs, Processed {} Directories", sys_time.elapsed().as_secs(), found_dirs.len(), reciever.iter().count());
+    let mut print_mode: PrintMode = PrintMode::norm();
+    let settings: ProgramSettings = ProgramSettings::init(&mut print_mode).await;
+    println!("{settings}");
     return;
-
 
     // END OF TEST SECTION
     // STARTING "NORMAL" SECTION HERE
