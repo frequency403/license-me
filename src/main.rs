@@ -4,7 +4,9 @@ use std::io::stdin;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::time::Instant;
 use futures::TryFuture;
+use indicatif::ProgressBar;
 use sysinfo::{DiskExt, System, SystemExt};
+use tokio::join;
 use crate::api_communicator::communicate;
 use crate::git_dir::GitDir;
 use crate::operating_mode::OperatingMode;
@@ -12,7 +14,7 @@ use crate::operating_mode::OperatingMode;
 use crate::output_printer::*;
 use crate::search::progress_spinner;
 use crate::settings_file::ProgramSettings;
-use crate::walker::start_walking;
+use crate::walker::{init_search};
 
 // Import the other files
 mod insert;
@@ -70,6 +72,18 @@ fn read_input(prompt: &str) -> String {
     s.trim().to_string()
 }
 
+fn ask_a_question(question: &str) -> bool {
+    match read_input(format!("{} [Y/n]:", question).as_str()).as_str() {
+        "Y" => {true},
+        "y" => {true},
+        "j" => {true},
+        "J" => {true},
+        _ => {false}
+    }
+}
+
+
+
 // Decides on the given arguments,
 // which mode the program is running.
 fn arg_modes(arguments: Vec<String>, pmm: &mut PrintMode) -> OperatingMode {
@@ -112,36 +126,25 @@ fn arg_modes(arguments: Vec<String>, pmm: &mut PrintMode) -> OperatingMode {
 
 #[tokio::main]
 async fn main() {
-    // if let Some(license) = communicate().await {
-    //     println!("{}",license.set_username_and_year().body)
-    // } else {
-    //     println!("Error")
-    // }
-    // let vecs = tokio::spawn(start_walking("C:\\"));
-    // let c = vecs.await.unwrap();
-    let mut print_mode: PrintMode = PrintMode::norm();
-    let settings: ProgramSettings = ProgramSettings::init(&mut print_mode).await;
-    println!("{settings}");
-    return;
-
-    // END OF TEST SECTION
-    // STARTING "NORMAL" SECTION HERE
-
-
     // Starting time measurement
-    let sys_time: Instant = Instant::now();
+    let sys_time: tokio::time::Instant = tokio::time::Instant::now();
 
     // Init the Print mode Struct
     let mut print_mode: PrintMode = PrintMode::norm();
 
+    // Init the SettingsOptions
+    let settings: ProgramSettings = ProgramSettings::init(&mut print_mode).await;
+
     // Check the given arguments
     let operating_mode: OperatingMode = arg_modes(args().collect::<Vec<String>>(), &mut print_mode);
 
-    // Init empty Vector for the directories, that the user wants to edit
-    let mut chosen_directories: Vec<&String> = vec![];
+    let progress_bar: ProgressBar = progress_spinner();
+    let found_git_dirs: Vec<GitDir> = init_search(operating_mode, sys_time).await;
+    progress_bar.finish_and_clear();
 
-    // Collection of found directories, containing the absolute path as string
-    let collection_of_git_dirs: Vec<String> = search::print_git_dirs(&operating_mode, &mut print_mode, sys_time).await;
+    found_git_dirs.iter().enumerate().for_each(| (count, dir) | {
+        println!("[{}] {}", count+1, dir.path);
+    });
 
     // If the user just wanted to see how many git directories he has....
     if operating_mode == OperatingMode::ShowAllGitDirs {
@@ -149,9 +152,10 @@ async fn main() {
         // then abort program.
         return;
     }
-
     // Using the helper function for reading the Input
     let input_of_user: String = read_input("Enter the number(s) of the repository's to select them: ");
+
+    let mut chosen_directories: Vec<GitDir> = vec![];
 
     // Split string on Whitespace, which creates a vector
     input_of_user.split_terminator(' ').for_each(|g| {
@@ -159,22 +163,22 @@ async fn main() {
         if let Ok(int) = g.trim().parse::<isize>() {
             // On purpose used "signed" int's, that the error can be caught here
             if int.is_positive() {
-                if collection_of_git_dirs.len() < int as usize || int == 0 {
+                if found_git_dirs.len() < int as usize || int == 0 {
                     print_mode.error_msg(format!("Index {} not available", int))
                 } else {
                     print_mode.verbose_msg(format!(
                         "Added: {} to processing collection",
-                        &collection_of_git_dirs[int as usize - 1]
+                        &found_git_dirs[int as usize - 1]
                     ), None);
                     // Push chosen dirs to the empty collection - also correct the Index with "-1"
-                    chosen_directories.push(&collection_of_git_dirs[int as usize - 1]);
+                    chosen_directories.push(found_git_dirs[int as usize - 1].clone());
                 }
             }
             // Use all directories you found
         } else if g == "all" {
-            collection_of_git_dirs.iter().for_each(|item| {
+            found_git_dirs.iter().for_each(|item| {
                 print_mode.verbose_msg(format!("Added: {} to processing collection", item), None);
-                chosen_directories.push(item)
+                chosen_directories.push(item.clone())
             });
             // If something goes wrong
         } else {
@@ -183,8 +187,21 @@ async fn main() {
         }
     });
     // Here starts the main work -> see insert.rs
-    let p_dirs = insert::insert_license(chosen_directories, &operating_mode, &mut print_mode);
+    //let p_dirs = insert::insert_license(chosen_directories, &operating_mode, &mut print_mode);
+
+    let mut processed_dirs_count: usize = 0;
+
+
+    for mut choice in chosen_directories.clone() {
+        clear_term();
+        print_mode.normal_msg(format!("Directory {} of {}", processed_dirs_count+1, chosen_directories.len()));
+        print_mode.normal_msg(format!("Working on {}\nPath: {}\n\n", choice.project_title, choice.path));
+        choice.write_license(&settings, &mut print_mode, &operating_mode).await;
+        processed_dirs_count += 1;
+    }
+
+
 
     // Print all errors the program collected at last.
-    print_mode.err_col.list_errors(p_dirs.await, &print_mode)
+    print_mode.err_col.list_errors(processed_dirs_count, &print_mode)
 }

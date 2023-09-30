@@ -10,6 +10,7 @@ use crate::{clear_term, PrintMode, read_input};
 use crate::api_communicator::communicate;
 use crate::github_license::GithubLicense;
 use crate::operating_mode::OperatingMode;
+use crate::settings_file::ProgramSettings;
 
 
 // The Functions returns the name of the directory, where the ".git" folder is contained as Project Title
@@ -106,67 +107,67 @@ fn append_to_readme(
 // This Function reads the complete "README",
 // Tries to filter the "##README" section and replaces it with the
 // correct one.
-fn replace_in_readme(
-    readme_path: &PathBuf,
-    license: &GithubLicense,
-    pm: &mut PrintMode,
-) {
-    // declaring placeholders outside of "if let" scope
-    let mut new_file_content = String::new();
-    let mut new_license_section = String::new();
-
-    // Open Readme file or print error
-    if let Ok(mut file_content) = File::open(readme_path) {
-        // placeholder for old file content
-        let mut old_file_content = String::new();
-
-        // read old filecontent to string
-        if file_content.read_to_string(&mut old_file_content).is_ok() {
-
-            // Split file into slices of strings
-            let slices_of_old_file = &mut old_file_content.split_inclusive("##").collect::<Vec<&str>>();
-
-            // check if there is a License section
-            if let Some(index_of_license) = slices_of_old_file.iter().position(|&c| {
-                c.contains(" License ") || c.contains(" LICENSE ") || c.contains(" License\n") || c.contains(" LICENSE\n")
-            }) {
-
-                // Then replace it
-                if let Some(content) = slices_of_old_file.last() {
-                    if content == &slices_of_old_file[index_of_license] {
-                        new_license_section = [" License\n", &license.name].concat()
-                    } else {
-                        new_license_section = [" License\n", &license.name, "\n\n##"].concat()
-                    }
-                }
-                slices_of_old_file[index_of_license] = &new_license_section;
-            }
-
-            // Rebuild the new file from the slices
-            for slice in slices_of_old_file {
-                new_file_content = new_file_content + slice;
-            }
-
-            // Then overwrite the License file or print message on error
-            match std::fs::write(readme_path, new_file_content) {
-                Ok(_) => {
-                    pm.verbose_msg(format!("Success in overwriting {}", readme_path.display()), None)
-                }
-                Err(msg) => pm.error_msg(format!(
-                    "{} occurred while writing {}",
-                    msg,
-                    readme_path.display()
-                )),
-            }
-        }
-    } else if let Err(err) = File::open(readme_path) {
-        pm.error_msg(format!(
-            "{} occurred while opening file: {}",
-            err,
-            readme_path.display()
-        ))
-    }
-}
+// fn replace_in_readme(
+//     readme_path: &PathBuf,
+//     license: &GithubLicense,
+//     pm: &mut PrintMode,
+// ) {
+//     // declaring placeholders outside of "if let" scope
+//     let mut new_file_content = String::new();
+//     let mut new_license_section = String::new();
+//
+//     // Open Readme file or print error
+//     if let Ok(mut file_content) = File::open(readme_path) {
+//         // placeholder for old file content
+//         let mut old_file_content = String::new();
+//
+//         // read old filecontent to string
+//         if file_content.read_to_string(&mut old_file_content).is_ok() {
+//
+//             // Split file into slices of strings
+//             let slices_of_old_file = &mut old_file_content.split_inclusive("##").collect::<Vec<&str>>();
+//
+//             // check if there is a License section
+//             if let Some(index_of_license) = slices_of_old_file.iter().position(|&c| {
+//                 c.contains(" License ") || c.contains(" LICENSE ") || c.contains(" License\n") || c.contains(" LICENSE\n")
+//             }) {
+//
+//                 // Then replace it
+//                 if let Some(content) = slices_of_old_file.last() {
+//                     if content == &slices_of_old_file[index_of_license] {
+//                         new_license_section = [" License\n", &license.name].concat()
+//                     } else {
+//                         new_license_section = [" License\n", &license.name, "\n\n##"].concat()
+//                     }
+//                 }
+//                 slices_of_old_file[index_of_license] = &new_license_section;
+//             }
+//
+//             // Rebuild the new file from the slices
+//             for slice in slices_of_old_file {
+//                 new_file_content = new_file_content + slice;
+//             }
+//
+//             // Then overwrite the License file or print message on error
+//             match std::fs::write(readme_path, new_file_content) {
+//                 Ok(_) => {
+//                     pm.verbose_msg(format!("Success in overwriting {}", readme_path.display()), None)
+//                 }
+//                 Err(msg) => pm.error_msg(format!(
+//                     "{} occurred while writing {}",
+//                     msg,
+//                     readme_path.display()
+//                 )),
+//             }
+//         }
+//     } else if let Err(err) = File::open(readme_path) {
+//         pm.error_msg(format!(
+//             "{} occurred while opening file: {}",
+//             err,
+//             readme_path.display()
+//         ))
+//     }
+// }
 
 // Deletes all License files in a directory
 
@@ -196,7 +197,7 @@ async fn delete_license_files(path: &mut PathBuf, pm: &mut PrintMode) {
         }
     }
 
-    path.push("LICENSE"); // Add "LICENSE" to the Path
+    path.push("../LICENSE_old"); // Add "LICENSE" to the Path
 }
 
 // This function "does the actual thing"
@@ -210,7 +211,7 @@ pub async fn insert_license(
 ) -> usize {
     clear_term();
     // Ask the user, which license he wants to give ANY of the directories
-    let license = communicate().await.unwrap().set_username_and_year();
+    let license = communicate(&ProgramSettings::init(pm).await).await.unwrap().set_username_and_year();
     // count the items of the paths vector
     let i = &paths.len();
     clear_term();
@@ -246,7 +247,7 @@ pub async fn insert_license(
             pm.verbose_msg("README.md found! Replacing license....", None);
             delete_license_files(&mut license_path, pm);
             write_license_file(&mut license_path, &license, pm);
-            replace_in_readme(&readme_path, &license, pm)
+            //replace_in_readme(&readme_path, &license, pm)
         }
     });
     // return count of paths processed

@@ -1,10 +1,6 @@
-use std::convert::Into;
 use std::fmt::{Display, Formatter};
-use std::ops::Deref;
 use std::path::{MAIN_SEPARATOR, Path};
 use std::string::ToString;
-use chrono::format::format;
-use futures::future::Lazy;
 use serde::{Deserialize, Serialize};
 use crate::output_printer::PrintMode;
 
@@ -12,7 +8,7 @@ use crate::output_printer::PrintMode;
 pub struct ProgramSettings {
     pub(super) github_user: String,
     pub(super) github_api_token: Option<String>,
-    pub(super) license_template_link: String,
+    pub(super) readme_template_link: String,
     pub(super) replace_in_readme_phrase: String,
 }
 
@@ -21,7 +17,7 @@ impl Default for ProgramSettings {
         Self {
             github_user: "frequency403".to_string(),
             github_api_token: None,
-            license_template_link: "https://raw.githubusercontent.com/PurpleBooth/a-good-readme-template/main/README.md".to_string(),
+            readme_template_link: "https://raw.githubusercontent.com/PurpleBooth/a-good-readme-template/main/README.md".to_string(),
             replace_in_readme_phrase: "# Project Title".to_string(),
         }
     }
@@ -29,7 +25,7 @@ impl Default for ProgramSettings {
 
 impl Display for ProgramSettings {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "\nGithub Username: {}\nGithub API Token: {:?}\nLink to license-template: {}\nGetting replaced in Readme: {}", self.github_user, self.github_api_token, self.license_template_link, self.replace_in_readme_phrase)
+        writeln!(f, "\nGithub Username: {}\nGithub API Token: {:?}\nLink to license-template: {}\nGetting replaced in Readme: {}", self.github_user, self.github_api_token, self.readme_template_link, self.replace_in_readme_phrase)
     }
 }
 

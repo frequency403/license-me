@@ -91,4 +91,4 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 Please feel free to contact me if there is a problem with understanding the Code, or general questions about the Program.
 
 ## License
-[MIT License](https://opensource.org/licenses/MIT)
+[MIT](http://choosealicense.com/licenses/mit/)

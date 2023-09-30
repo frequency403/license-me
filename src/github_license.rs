@@ -1,4 +1,4 @@
-use std::fmt::Display;
+
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 use crate::read_input;
@@ -11,7 +11,7 @@ pub struct MiniGithubLicense {
     pub(crate) url: String,
     pub(crate) node_id: String
 }
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct GithubLicense {
     pub(crate) key: String,
     pub(crate) name: String,
@@ -37,5 +37,9 @@ impl GithubLicense {
             self.body = self.body.replace("[year]", Utc::now().year().to_string().as_str());
         }
         self
+    }
+
+    pub fn get_markdown_license_link(&self) -> String {
+        format!("\n[{}]({})", self.spdx_id, self.html_url)
     }
 }
