@@ -1,13 +1,13 @@
 use std::fmt::Display;
 use std::path::MAIN_SEPARATOR;
-use std::sync::mpsc::Sender;
+
 use sysinfo::{DiskExt, System, SystemExt};
 use tokio::task::JoinHandle;
 use tokio::time::Instant;
 use walkdir::WalkDir;
+
 use crate::git_dir::GitDir;
 use crate::operating_mode::OperatingMode;
-
 
 pub async fn init_search(op_mode: OperatingMode, time: Instant) -> Vec<GitDir> {
     let system = System::new_all();
@@ -31,11 +31,11 @@ pub async fn init_search(op_mode: OperatingMode, time: Instant) -> Vec<GitDir> {
                 dirs.push(git_dir.clone());
             });
         });
-        println!("Searching took: {}s", time.elapsed().as_secs());
-        dirs
+    println!("Searching took: {}s", time.elapsed().as_secs());
+    dirs
 }
 
-async fn start_walking<T>(root: T, op_mode: OperatingMode) -> Vec<GitDir> where T:Display {
+async fn start_walking<T>(root: T, op_mode: OperatingMode) -> Vec<GitDir> where T: Display {
     let mut task_holder: Vec<JoinHandle<Vec<GitDir>>> = vec![];
     WalkDir::new(root.to_string()).max_depth(1).into_iter().for_each(|dir| {
         if let Ok(entry) = dir {
@@ -49,14 +49,14 @@ async fn start_walking<T>(root: T, op_mode: OperatingMode) -> Vec<GitDir> where 
     futures::future::join_all(task_holder)
         .await
         .iter()
-        .filter_map( |future| {
+        .filter_map(|future| {
             if let Ok(f) = future {
                 Some(f)
             } else {
                 None
             }
-        } )
-        .for_each( |res| {
+        })
+        .for_each(|res| {
             res.to_vec().iter().for_each(|item| {
                 if !any_dir.contains(item) {
                     any_dir.push(item.clone())
@@ -67,13 +67,12 @@ async fn start_walking<T>(root: T, op_mode: OperatingMode) -> Vec<GitDir> where 
 }
 
 async fn walk_deeper(root: String, op_mode: OperatingMode) -> Vec<GitDir> {
-    WalkDir::new(root).into_iter().filter_map( |p_dir| {
+    WalkDir::new(root).into_iter().filter_map(|p_dir| {
         if let Ok(valid_dir) = p_dir {
             let path = valid_dir.path().display().to_string();
             if path.ends_with(format!("{}{}", MAIN_SEPARATOR, ".git").as_str()) &&
                 !path.contains(".cargo") && !path.contains('$') &&
                 !path.contains("AppData") {
-
                 let dir = GitDir::init(path);
                 match op_mode {
                     OperatingMode::SetNewLicense => {

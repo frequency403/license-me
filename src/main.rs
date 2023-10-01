@@ -1,26 +1,19 @@
 use std::env::args;
 use std::future::Future;
 use std::io::stdin;
-use std::sync::mpsc::{channel, Receiver, Sender};
-use std::time::Instant;
+
 use futures::TryFuture;
-use indicatif::ProgressBar;
-use sysinfo::{DiskExt, System, SystemExt};
-use tokio::join;
-use crate::api_communicator::communicate;
+use indicatif::{ProgressBar, ProgressStyle};
+use sysinfo::{DiskExt, SystemExt};
+
 use crate::git_dir::GitDir;
 use crate::operating_mode::OperatingMode;
-
 use crate::output_printer::*;
-use crate::search::progress_spinner;
 use crate::settings_file::ProgramSettings;
-use crate::walker::{init_search};
+use crate::walker::init_search;
 
 // Import the other files
-mod insert;
-mod licences;
 mod output_printer;
-mod search;
 mod error_collector;
 mod github_license;
 mod api_communicator;
@@ -73,15 +66,8 @@ fn read_input(prompt: &str) -> String {
 }
 
 fn ask_a_question(question: &str) -> bool {
-    match read_input(format!("{} [Y/n]:", question).as_str()).as_str() {
-        "Y" => {true},
-        "y" => {true},
-        "j" => {true},
-        "J" => {true},
-        _ => {false}
-    }
+    matches!(read_input(format!("{} [Y/n]:", question).as_str()).as_str(), "Y" | "y" | "j" | "J" | "Ja" | "ja" | "Yes" | "yes")
 }
-
 
 
 // Decides on the given arguments,
@@ -111,13 +97,13 @@ fn arg_modes(arguments: Vec<String>, pmm: &mut PrintMode) -> OperatingMode {
             }
 
             // Append/Add a LICENSE to a repo
-            "--append-license" => {op_mode = OperatingMode::AppendLicense },
+            "--append-license" => { op_mode = OperatingMode::AppendLicense }
 
             // Replaces the LICENSE file
-            "--replace-license" => {op_mode = OperatingMode::LicenseReplace },
+            "--replace-license" => { op_mode = OperatingMode::LicenseReplace }
 
             // Show all git-repositorys, regardless of the license status
-            "--show-all" => {op_mode = OperatingMode::ShowAllGitDirs },
+            "--show-all" => { op_mode = OperatingMode::ShowAllGitDirs }
             _ => {}
         })
     }
@@ -142,8 +128,8 @@ async fn main() {
     let found_git_dirs: Vec<GitDir> = init_search(operating_mode, sys_time).await;
     progress_bar.finish_and_clear();
 
-    found_git_dirs.iter().enumerate().for_each(| (count, dir) | {
-        println!("[{}] {}", count+1, dir.path);
+    found_git_dirs.iter().enumerate().for_each(|(count, dir)| {
+        println!("[{}] {}", count + 1, dir.path);
     });
 
     // If the user just wanted to see how many git directories he has....
@@ -194,14 +180,29 @@ async fn main() {
 
     for mut choice in chosen_directories.clone() {
         clear_term();
-        print_mode.normal_msg(format!("Directory {} of {}", processed_dirs_count+1, chosen_directories.len()));
+        print_mode.normal_msg(format!("Directory {} of {}", processed_dirs_count + 1, chosen_directories.len()));
         print_mode.normal_msg(format!("Working on {}\nPath: {}\n\n", choice.project_title, choice.path));
         choice.execute_user_action(&settings, &mut print_mode, &operating_mode).await;
         processed_dirs_count += 1;
     }
 
 
-
     // Print all errors the program collected at last.
     print_mode.err_col.list_errors(processed_dirs_count, &print_mode)
+}
+
+// Using a ProgressBar (spinner) from the crate "ProgressBar"
+pub fn progress_spinner() -> ProgressBar {
+    // Init main struct
+    let p_bar = ProgressBar::new_spinner();
+    // Set the style and the tick strings, iterating over all but not the last item every tick
+    p_bar.set_style(
+        ProgressStyle::with_template("\n{msg}{spinner}").unwrap().tick_strings(&[".   ", " .  ", "  . ", "   .", "  . ", " .  ", " finished!"]),
+    );
+    // The message shown at {msg}, must be set AFTER declaring the style
+    p_bar.set_message("Searching");
+    // Using steady tick for eye-friendliness
+    p_bar.enable_steady_tick(std::time::Duration::from_secs_f32(0.1));
+    // return the bar "object"
+    p_bar
 }

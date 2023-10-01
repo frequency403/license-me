@@ -1,6 +1,6 @@
-
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
+
 use crate::read_input;
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -9,8 +9,9 @@ pub struct MiniGithubLicense {
     pub(crate) name: String,
     pub(crate) spdx_id: String,
     pub(crate) url: String,
-    pub(crate) node_id: String
+    pub(crate) node_id: String,
 }
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct GithubLicense {
     pub(crate) key: String,
@@ -29,7 +30,7 @@ pub struct GithubLicense {
 }
 
 impl GithubLicense {
-    pub fn set_username_and_year(mut self) -> Self{
+    pub fn set_username_and_year(mut self) -> Self {
         if self.body.contains("[fullname]") {
             self.body = self.body.replace("[fullname]", read_input("Enter your full name (John Doe): ").as_str());
         }

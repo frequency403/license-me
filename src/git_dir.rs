@@ -1,10 +1,9 @@
-use std::fmt::{Display, format, Formatter};
-use std::path::{MAIN_SEPARATOR, MAIN_SEPARATOR_STR, Path, PathBuf};
-use futures::io::Write;
-use serde::de::Unexpected::Str;
-use tokio::fs::{File, OpenOptions};
+use std::fmt::{Display, Formatter};
+use std::path::{MAIN_SEPARATOR, Path, PathBuf};
+
+use tokio::fs::File;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::sync::mpsc::OwnedPermit;
+
 use crate::api_communicator::{communicate, get_readme_template};
 use crate::ask_a_question;
 use crate::github_license::GithubLicense;
@@ -121,7 +120,6 @@ impl GitDir {
                         } else {
                             new_license_section = [" License\n", &license.get_markdown_license_link(), "\n\n##"].concat()
                         }
-
                     }
                     slices_of_old_file[index_of_license] = &new_license_section;
                 }
@@ -161,7 +159,6 @@ impl GitDir {
                 }
 
                 if self.has_areadme {
-
                     if multi_license {
                         self.replace_in_readme(user_choice, print_mode, false).await;
                     }

@@ -1,6 +1,8 @@
-use chrono::Local;
 use std::fmt::Display;
+
+use chrono::Local;
 use indicatif::ProgressBar;
+
 use crate::error_collector::*;
 
 // Using a print mode for Pretty-CLI print, with easy usage for the rest of the code

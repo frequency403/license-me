@@ -3,5 +3,5 @@ pub enum OperatingMode {
     SetNewLicense,
     AppendLicense,
     LicenseReplace,
-    ShowAllGitDirs
+    ShowAllGitDirs,
 }

@@ -1,7 +1,9 @@
 use std::fmt::{Display, Formatter};
 use std::path::{MAIN_SEPARATOR, Path};
 use std::string::ToString;
+
 use serde::{Deserialize, Serialize};
+
 use crate::output_printer::PrintMode;
 
 #[derive(Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -31,7 +33,7 @@ impl Display for ProgramSettings {
 
 impl ProgramSettings {
     pub async fn init(pm: &mut PrintMode) -> Self {
-        let settings_file_path = format!("{}{}{}", std::env::current_dir().unwrap().display(), MAIN_SEPARATOR ,"settings.json");
+        let settings_file_path = format!("{}{}{}", std::env::current_dir().unwrap().display(), MAIN_SEPARATOR, "settings.json");
         let def = Self::default();
         let remove_and_create = async {
             tokio::fs::remove_file(&settings_file_path).await.unwrap_or_default();
