@@ -1,11 +1,6 @@
 use std::env::args;
-use std::future::Future;
 use std::io::stdin;
-
-use futures::TryFuture;
 use indicatif::{ProgressBar, ProgressStyle};
-use sysinfo::{DiskExt, SystemExt};
-
 use crate::git_dir::GitDir;
 use crate::operating_mode::OperatingMode;
 use crate::output_printer::*;
@@ -129,7 +124,14 @@ async fn main() {
     progress_bar.finish_and_clear();
 
     found_git_dirs.iter().enumerate().for_each(|(count, dir)| {
-        println!("[{}] {}", count + 1, dir.path);
+        if operating_mode == OperatingMode::ShowAllGitDirs {
+            println!("[License: {}][Readme: {}] {}",
+                     if dir.has_alicense {ansi_term::Color::Green.paint("true ")} else {ansi_term::Color::Red.paint("false")},
+                     if dir.has_areadme {ansi_term::Color::Green.paint("true ")} else {ansi_term::Color::Red.paint("false")},
+                     dir.path);
+        } else {
+            println!("[{}] {}", count + 1, dir.path);
+        }
     });
 
     // If the user just wanted to see how many git directories he has....

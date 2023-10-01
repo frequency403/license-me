@@ -2,7 +2,7 @@ use std::fmt::{Display, Formatter};
 use std::path::{MAIN_SEPARATOR, Path, PathBuf};
 
 use tokio::fs::File;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::{AsyncReadExt};
 
 use crate::api_communicator::{communicate, get_readme_template};
 use crate::ask_a_question;
@@ -17,7 +17,7 @@ static LICENSE_VARIANTS: [&str; 3] = ["LICENSE", "license", "License"];
 static DEFAULT_LICENSE_FILE: &str = "LICENSE";
 static DEFAULT_README_FILE: &str = "README.md";
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct GitDir {
     pub(crate) path: String,
     pub(crate) has_areadme: bool,
@@ -25,6 +25,8 @@ pub struct GitDir {
     pub(crate) has_alicense: bool,
     license_path: Option<PathBuf>,
     pub(crate) project_title: String,
+    // TODO Remove booleans - they are redundant if there is an "Option" available that can be matched against.
+    // TODO Add an Option field, that holds the license if there is any, else None.
 }
 
 impl GitDir {
@@ -37,21 +39,25 @@ impl GitDir {
         let mut readme_path: Option<PathBuf> = None;
         let mut license_path: Option<PathBuf> = None;
 
-        for variant in README_VARIANTS {
+        README_VARIANTS.into_iter().for_each(|readme_name| {
             if !has_readme {
-                let temp_pth = format!("{}{}{}", &clean_path, MAIN_SEPARATOR, variant);
+                let temp_pth = format!("{}{}{}", &clean_path, MAIN_SEPARATOR, readme_name);
                 has_readme = Path::new(temp_pth.as_str()).exists();
                 readme_path = if has_readme { Some(temp_pth.into()) } else { None };
             }
-        }
+        });
 
-        for variant in LICENSE_VARIANTS {
+        //TODO find a better and elegant way for this.
+
+        LICENSE_VARIANTS.into_iter().for_each(|license_name| {
             if !has_license {
-                let temp_pth = format!("{}{}{}", &clean_path, MAIN_SEPARATOR, variant);
+                let temp_pth = format!("{}{}{}", &clean_path, MAIN_SEPARATOR, license_name);
                 has_license = Path::new(temp_pth.as_str()).exists();
                 license_path = if has_license { Some(temp_pth.into()) } else { None };
             }
-        }
+        });
+
+
 
         if license_path.is_none() {
             license_path = Some(format!("{}{}{}", &clean_path, MAIN_SEPARATOR, DEFAULT_LICENSE_FILE).into());
@@ -107,13 +113,15 @@ impl GitDir {
                     c.contains(" License ") || c.contains(" LICENSE ") || c.contains(" License\n") || c.contains(" LICENSE\n")
                 }) {
 
+                    //TODO Implement a "is like" function to make this block even more accurate. - Works best when there is a "License" inside of the GitDir struct
+
                     // Then replace it
                     if let Some(content) = slices_of_old_file.last() {
                         if multi_license {
                             if content == &slices_of_old_file[index_of_license] {
-                                new_license_section = [slices_of_old_file[index_of_license], &license.get_markdown_license_link()].concat()
+                                new_license_section = [slices_of_old_file[index_of_license], "\n", &license.get_markdown_license_link()].concat()
                             } else {
-                                new_license_section = [slices_of_old_file[index_of_license], &license.get_markdown_license_link(), "\n\n##"].concat()
+                                new_license_section = [slices_of_old_file[index_of_license].replace("##", "").as_str(), "\n", &license.get_markdown_license_link(), "\n\n##"].concat()
                             }
                         } else if content == &slices_of_old_file[index_of_license] {
                             new_license_section = [" License\n", &license.get_markdown_license_link()].concat()
@@ -162,27 +170,6 @@ impl GitDir {
                     if multi_license {
                         self.replace_in_readme(user_choice, print_mode, false).await;
                     }
-
-                    // // Open file in append mode
-                    // if let Ok(mut file) = OpenOptions::new().append(true).open(self.readme_path.clone().unwrap()).await {
-                    //     print_mode.verbose_msg(format!(
-                    //         "{:#?} successfully opened in append mode",
-                    //         self.readme_path.clone().unwrap()
-                    //     ), None);
-                    //
-                    //     // Write License Link to the File
-                    //
-                    //     match file.write(user_choice.get_markdown_license_link().as_bytes()).await {
-                    //         Ok(_) => print_mode.verbose_msg(format!("Appended {} to README.md", &user_choice.name), None),
-                    //         Err(msg) => print_mode.error_msg(format!(
-                    //             "{} while appending to file {}",
-                    //             msg,
-                    //             self.readme_path.clone().unwrap().display()
-                    //         )),
-                    //     }
-                    // } else {
-                    //     print_mode.error_msg("Error opening the file in append mode")
-                    // }
                 } else if ask_a_question("Found no README file - do you want to create one?") {
                     self.set_dummy_readme(program_settings, print_mode).await;
                     self.replace_in_readme(user_choice, print_mode, multi_license).await;
@@ -190,6 +177,19 @@ impl GitDir {
             }
         } else if !multi_license {
             print_mode.error_msg("Wanted to set a license, while a license was detected! Use the \"AppendLicenseMode\" for this!");
+        } else if let Some(license_path) = &self.license_path {
+            if let Err(error) = tokio::fs::write(license_path, user_choice.clone().set_username_and_year().body).await {
+                print_mode.error_msg(error);
+            }
+
+            if self.has_areadme {
+                if multi_license {
+                    self.replace_in_readme(user_choice, print_mode, true).await;
+                }
+            } else if ask_a_question("Found no README file - do you want to create one?") {
+                self.set_dummy_readme(program_settings, print_mode).await;
+                self.replace_in_readme(user_choice, print_mode, multi_license).await;
+            }
         }
     }
 
@@ -203,8 +203,7 @@ impl GitDir {
                 OperatingMode::AppendLicense => {
                     let mut license_path = self.license_path.clone().unwrap();
                     if license_path.exists() {
-                        license_path.pop();
-                        license_path.push(format!("{}-{}", DEFAULT_LICENSE_FILE, user_choice.spdx_id));
+                        license_path.set_file_name(format!("{}-{}", DEFAULT_LICENSE_FILE, user_choice.spdx_id))
                     }
                     self.license_path = Some(license_path);
                     self.write_license(program_settings, print_mode, &user_choice, true).await
@@ -224,6 +223,7 @@ impl GitDir {
 
 impl Display for GitDir {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        // TODO: Make this even more prettier
         writeln!(f, "\nProject: {}\nPath: {}\n", self.project_title, self.path)
     }
 }

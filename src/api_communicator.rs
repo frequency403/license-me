@@ -8,7 +8,7 @@ use crate::github_license::{GithubLicense, MiniGithubLicense};
 use crate::read_input;
 use crate::settings_file::ProgramSettings;
 
-fn set_header(mut req: RequestBuilder, program_settings: &ProgramSettings) -> RequestBuilder {
+fn set_header(req: RequestBuilder, program_settings: &ProgramSettings) -> RequestBuilder {
     let mut headers = HeaderMap::new();
 
     if let Some(auth) = &program_settings.github_api_token {
