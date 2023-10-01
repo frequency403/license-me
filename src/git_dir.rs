@@ -1,9 +1,10 @@
-use std::fmt::{Display, Formatter};
+use std::fmt::{Display, format, Formatter};
 use std::path::{MAIN_SEPARATOR, MAIN_SEPARATOR_STR, Path, PathBuf};
 use futures::io::Write;
 use serde::de::Unexpected::Str;
 use tokio::fs::{File, OpenOptions};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::sync::mpsc::OwnedPermit;
 use crate::api_communicator::{communicate, get_readme_template};
 use crate::ask_a_question;
 use crate::github_license::GithubLicense;
@@ -85,7 +86,7 @@ impl GitDir {
         }
     }
 
-    async fn replace_in_readme(&self, license: &GithubLicense, pm: &mut PrintMode) {
+    async fn replace_in_readme(&self, license: &GithubLicense, pm: &mut PrintMode, multi_license: bool) {
         // declaring placeholders outside of "if let" scope
         let mut new_file_content = String::new();
         let mut new_license_section = String::new();
@@ -109,11 +110,18 @@ impl GitDir {
 
                     // Then replace it
                     if let Some(content) = slices_of_old_file.last() {
-                        if content == &slices_of_old_file[index_of_license] {
+                        if multi_license {
+                            if content == &slices_of_old_file[index_of_license] {
+                                new_license_section = [slices_of_old_file[index_of_license], &license.get_markdown_license_link()].concat()
+                            } else {
+                                new_license_section = [slices_of_old_file[index_of_license], &license.get_markdown_license_link(), "\n\n##"].concat()
+                            }
+                        } else if content == &slices_of_old_file[index_of_license] {
                             new_license_section = [" License\n", &license.get_markdown_license_link()].concat()
                         } else {
                             new_license_section = [" License\n", &license.get_markdown_license_link(), "\n\n##"].concat()
                         }
+
                     }
                     slices_of_old_file[index_of_license] = &new_license_section;
                 }
@@ -145,48 +153,72 @@ impl GitDir {
     }
 
 
-    pub async fn write_license(&mut self, program_settings: &ProgramSettings, print_mode: &mut PrintMode, op_mode: &OperatingMode) {
+    async fn write_license(&mut self, program_settings: &ProgramSettings, print_mode: &mut PrintMode, user_choice: &GithubLicense, multi_license: bool) {
+        if !self.has_alicense {
+            if let Some(license_path) = &self.license_path {
+                if let Err(error) = tokio::fs::write(license_path, user_choice.clone().set_username_and_year().body).await {
+                    print_mode.error_msg(error);
+                }
+
+                if self.has_areadme {
+
+                    if multi_license {
+                        self.replace_in_readme(user_choice, print_mode, false).await;
+                    }
+
+                    // // Open file in append mode
+                    // if let Ok(mut file) = OpenOptions::new().append(true).open(self.readme_path.clone().unwrap()).await {
+                    //     print_mode.verbose_msg(format!(
+                    //         "{:#?} successfully opened in append mode",
+                    //         self.readme_path.clone().unwrap()
+                    //     ), None);
+                    //
+                    //     // Write License Link to the File
+                    //
+                    //     match file.write(user_choice.get_markdown_license_link().as_bytes()).await {
+                    //         Ok(_) => print_mode.verbose_msg(format!("Appended {} to README.md", &user_choice.name), None),
+                    //         Err(msg) => print_mode.error_msg(format!(
+                    //             "{} while appending to file {}",
+                    //             msg,
+                    //             self.readme_path.clone().unwrap().display()
+                    //         )),
+                    //     }
+                    // } else {
+                    //     print_mode.error_msg("Error opening the file in append mode")
+                    // }
+                } else if ask_a_question("Found no README file - do you want to create one?") {
+                    self.set_dummy_readme(program_settings, print_mode).await;
+                    self.replace_in_readme(user_choice, print_mode, multi_license).await;
+                }
+            }
+        } else if !multi_license {
+            print_mode.error_msg("Wanted to set a license, while a license was detected! Use the \"AppendLicenseMode\" for this!");
+        }
+    }
+
+
+    pub async fn execute_user_action(&mut self, program_settings: &ProgramSettings, print_mode: &mut PrintMode, op_mode: &OperatingMode) {
         if let Some(user_choice) = communicate(program_settings).await {
             match op_mode {
                 OperatingMode::SetNewLicense => {
-                    if !self.has_alicense {
-                        if let Some(license_path) = &self.license_path {
-                            if let Err(error) = tokio::fs::write(license_path, user_choice.clone().set_username_and_year().body).await {
-                                print_mode.error_msg(error);
-                            }
-
-                            if self.has_areadme {
-                                // Open file in append mode
-                                if let Ok(mut file) = OpenOptions::new().append(true).open(self.readme_path.clone().unwrap()).await {
-                                    print_mode.verbose_msg(format!(
-                                        "{:#?} successfully opened in append mode",
-                                        self.readme_path.clone().unwrap()
-                                    ), None);
-
-                                    // Write License Link to the File
-
-                                    match file.write(user_choice.get_markdown_license_link().as_bytes()).await {
-                                        Ok(_) => print_mode.verbose_msg(format!("Appended {} to README.md", &user_choice.name), None),
-                                        Err(msg) => print_mode.error_msg(format!(
-                                            "{} while appending to file {}",
-                                            msg,
-                                            self.readme_path.clone().unwrap().display()
-                                        )),
-                                    }
-                                } else {
-                                    print_mode.error_msg("Error opening the file in append mode")
-                                }
-                            } else if ask_a_question("Found no README file - do you want to create one?") {
-                                self.set_dummy_readme(program_settings, print_mode).await;
-                                self.replace_in_readme(&user_choice, print_mode).await;
-                            }
-                        }
-                    } else {
-                        print_mode.error_msg("Wanted to set a license, while a license was detected! Use the \"AppendLicenseMode\" for this!");
-                    }
+                    self.write_license(program_settings, print_mode, &user_choice, false).await
                 }
-                OperatingMode::AppendLicense => {}
-                OperatingMode::LicenseReplace => {}
+                OperatingMode::AppendLicense => {
+                    let mut license_path = self.license_path.clone().unwrap();
+                    if license_path.exists() {
+                        license_path.pop();
+                        license_path.push(format!("{}-{}", DEFAULT_LICENSE_FILE, user_choice.spdx_id));
+                    }
+                    self.license_path = Some(license_path);
+                    self.write_license(program_settings, print_mode, &user_choice, true).await
+                }
+                OperatingMode::LicenseReplace => {
+                    if self.has_alicense && tokio::fs::remove_file(self.license_path.clone().unwrap()).await.is_err() {
+                        print_mode.error_msg("Error occurred while deleting the current LICENSE file!");
+                        return;
+                    }
+                    self.write_license(program_settings, print_mode, &user_choice, false).await
+                }
                 OperatingMode::ShowAllGitDirs => {}
             }
         }

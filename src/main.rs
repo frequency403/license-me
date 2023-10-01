@@ -196,7 +196,7 @@ async fn main() {
         clear_term();
         print_mode.normal_msg(format!("Directory {} of {}", processed_dirs_count+1, chosen_directories.len()));
         print_mode.normal_msg(format!("Working on {}\nPath: {}\n\n", choice.project_title, choice.path));
-        choice.write_license(&settings, &mut print_mode, &operating_mode).await;
+        choice.execute_user_action(&settings, &mut print_mode, &operating_mode).await;
         processed_dirs_count += 1;
     }
 
