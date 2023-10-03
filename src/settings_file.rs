@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter};
-use std::path::{MAIN_SEPARATOR, Path};
+use std::path::{Path, MAIN_SEPARATOR};
 use std::string::ToString;
 
 use serde::{Deserialize, Serialize};
@@ -33,11 +33,23 @@ impl Display for ProgramSettings {
 
 impl ProgramSettings {
     pub async fn init(pm: &mut PrintMode) -> Self {
-        let settings_file_path = format!("{}{}{}", std::env::current_dir().unwrap().display(), MAIN_SEPARATOR, "settings.json");
+        let settings_file_path = format!(
+            "{}{}{}",
+            std::env::current_dir().unwrap().display(),
+            MAIN_SEPARATOR,
+            "settings.json"
+        );
         let def = Self::default();
         let remove_and_create = async {
-            tokio::fs::remove_file(&settings_file_path).await.unwrap_or_default();
-            tokio::fs::write(&settings_file_path, serde_json::to_string_pretty(&def).unwrap_or_default()).await.unwrap_or_default();
+            tokio::fs::remove_file(&settings_file_path)
+                .await
+                .unwrap_or_default();
+            tokio::fs::write(
+                &settings_file_path,
+                serde_json::to_string_pretty(&def).unwrap_or_default(),
+            )
+            .await
+            .unwrap_or_default();
             Self::default()
         };
         pm.verbose_msg("Start loading Settings file", None);
@@ -49,7 +61,10 @@ impl ProgramSettings {
                     pm.normal_msg("Settings File successfully loaded from disk");
                     obj
                 } else {
-                    pm.verbose_msg("Object Deserialization got some errors. Recreating the Settings File", None);
+                    pm.verbose_msg(
+                        "Object Deserialization got some errors. Recreating the Settings File",
+                        None,
+                    );
                     pm.error_msg("Recreated News because of Internal Failure!");
                     remove_and_create.await
                 }
@@ -61,7 +76,12 @@ impl ProgramSettings {
             }
         } else {
             pm.verbose_msg("No Settings File was present, creating one!", None);
-            tokio::fs::write(&settings_file_path, serde_json::to_string_pretty(&def).unwrap_or_default()).await.unwrap_or_default();
+            tokio::fs::write(
+                &settings_file_path,
+                serde_json::to_string_pretty(&def).unwrap_or_default(),
+            )
+            .await
+            .unwrap_or_default();
             pm.normal_msg("Settings File created");
             Self::default()
         }

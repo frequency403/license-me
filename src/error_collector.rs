@@ -12,9 +12,7 @@ impl ErrorCollector {
     // Init a empty vector
 
     pub const fn init() -> Self {
-        Self {
-            collection: vec![]
-        }
+        Self { collection: vec![] }
     }
     // Add a string to the collection
     pub fn add(&mut self, msg: String) {
@@ -24,9 +22,18 @@ impl ErrorCollector {
     // Iterate over every entry and print ending message or contents of the error-list
     pub fn list_errors(&self, processed_dirs: usize, pm: &PrintMode) {
         if self.collection.is_empty() {
-            pm.normal_msg(format!("\n\nDone! Processed {} directories successfully!\n", processed_dirs))
+            pm.normal_msg(format!(
+                "\n\nDone! Processed {} directories successfully!\n",
+                processed_dirs
+            ))
         } else {
-            eprintln!("{}", ansi_term::Color::Red.bold().blink().paint("!![ERROR(S) OCCURRED]!!\n\n"));
+            eprintln!(
+                "{}",
+                ansi_term::Color::Red
+                    .bold()
+                    .blink()
+                    .paint("!![ERROR(S) OCCURRED]!!\n\n")
+            );
             self.collection.iter().for_each(|entry| {
                 if let Some(position) = self.collection.iter().position(|pos| pos == entry) {
                     eprintln!(

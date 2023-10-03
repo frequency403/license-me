@@ -32,10 +32,15 @@ pub struct GithubLicense {
 impl GithubLicense {
     pub fn set_username_and_year(mut self) -> Self {
         if self.body.contains("[fullname]") {
-            self.body = self.body.replace("[fullname]", read_input("Enter your full name (John Doe): ").as_str());
+            self.body = self.body.replace(
+                "[fullname]",
+                read_input("Enter your full name (John Doe): ").as_str(),
+            );
         }
         if self.body.contains("[year]") {
-            self.body = self.body.replace("[year]", Utc::now().year().to_string().as_str());
+            self.body = self
+                .body
+                .replace("[year]", Utc::now().year().to_string().as_str());
         }
         self
     }
