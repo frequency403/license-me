@@ -1,7 +1,13 @@
+use std::any::Any;
 use std::env::args;
+use std::error::Error;
 use std::io::stdin;
 use indicatif::{ProgressBar, ProgressStyle};
+use lazy_static::lazy_static;
+use crate::alike::is_alike;
+use crate::api_communicator::get_all_licenses;
 use crate::git_dir::GitDir;
+use crate::github_license::GithubLicense;
 use crate::operating_mode::OperatingMode;
 use crate::output_printer::*;
 use crate::settings_file::ProgramSettings;
@@ -16,6 +22,7 @@ mod operating_mode;
 mod walker;
 mod git_dir;
 mod settings_file;
+mod alike;
 
 // Prints CLI-Help & exits
 // Uses the PrintMode message Method
@@ -106,7 +113,8 @@ fn arg_modes(arguments: Vec<String>, pmm: &mut PrintMode) -> OperatingMode {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn Error>>{
+
     // Starting time measurement
     let sys_time: tokio::time::Instant = tokio::time::Instant::now();
 
@@ -119,15 +127,17 @@ async fn main() {
     // Check the given arguments
     let operating_mode: OperatingMode = arg_modes(args().collect::<Vec<String>>(), &mut print_mode);
 
+
     let progress_bar: ProgressBar = progress_spinner();
-    let found_git_dirs: Vec<GitDir> = init_search(operating_mode, sys_time).await;
+    let all_licenses = get_all_licenses(&settings).await?;
+    let found_git_dirs: Vec<GitDir> = init_search(operating_mode, sys_time, all_licenses.clone()).await;
     progress_bar.finish_and_clear();
 
     found_git_dirs.iter().enumerate().for_each(|(count, dir)| {
         if operating_mode == OperatingMode::ShowAllGitDirs {
             println!("[License: {}][Readme: {}] {}",
-                     if dir.has_alicense {ansi_term::Color::Green.paint("true ")} else {ansi_term::Color::Red.paint("false")},
-                     if dir.has_areadme {ansi_term::Color::Green.paint("true ")} else {ansi_term::Color::Red.paint("false")},
+                     if dir.license_path.is_some() {ansi_term::Color::Green.paint("true ")} else {ansi_term::Color::Red.paint("false")},
+                     if dir.readme_path.is_some() {ansi_term::Color::Green.paint("true ")} else {ansi_term::Color::Red.paint("false")},
                      dir.path);
         } else {
             println!("[{}] {}", count + 1, dir.path);
@@ -138,7 +148,7 @@ async fn main() {
     if operating_mode == OperatingMode::ShowAllGitDirs {
         print_mode.normal_msg("\n\nPlease run again for modifying the directories\n");
         // then abort program.
-        return;
+        return Ok(());
     }
     // Using the helper function for reading the Input
     let input_of_user: String = read_input("Enter the number(s) of the repository's to select them: ");
@@ -184,13 +194,14 @@ async fn main() {
         clear_term();
         print_mode.normal_msg(format!("Directory {} of {}", processed_dirs_count + 1, chosen_directories.len()));
         print_mode.normal_msg(format!("Working on {}\nPath: {}\n\n", choice.project_title, choice.path));
-        choice.execute_user_action(&settings, &mut print_mode, &operating_mode).await;
+        choice.execute_user_action(&settings, &mut print_mode, &operating_mode, all_licenses.clone()).await;
         processed_dirs_count += 1;
     }
 
 
     // Print all errors the program collected at last.
-    print_mode.err_col.list_errors(processed_dirs_count, &print_mode)
+    print_mode.err_col.list_errors(processed_dirs_count, &print_mode);
+    Ok(())
 }
 
 // Using a ProgressBar (spinner) from the crate "ProgressBar"

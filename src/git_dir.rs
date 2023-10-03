@@ -1,11 +1,13 @@
 use std::fmt::{Display, Formatter};
 use std::path::{MAIN_SEPARATOR, Path, PathBuf};
+use async_recursion::async_recursion;
+use serde::de::Error;
 
 use tokio::fs::File;
 use tokio::io::{AsyncReadExt};
 
 use crate::api_communicator::{communicate, get_readme_template};
-use crate::ask_a_question;
+use crate::{ask_a_question, git_dir, read_input};
 use crate::github_license::GithubLicense;
 use crate::operating_mode::OperatingMode;
 use crate::output_printer::PrintMode;
@@ -20,74 +22,67 @@ static DEFAULT_README_FILE: &str = "README.md";
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct GitDir {
     pub(crate) path: String,
-    pub(crate) has_areadme: bool,
-    readme_path: Option<PathBuf>,
-    pub(crate) has_alicense: bool,
-    license_path: Option<PathBuf>,
+    pub(crate) readme_path: Option<PathBuf>,
+    pub(crate) license_path: Option<PathBuf>,
     pub(crate) project_title: String,
-    // TODO Remove booleans - they are redundant if there is an "Option" available that can be matched against.
-    // TODO Add an Option field, that holds the license if there is any, else None.
+    pub(crate) license: Option<GithubLicense>
 }
 
 impl GitDir {
-    pub fn init(path: String) -> Self {
+    pub fn init(path: String, license: Option<Vec<GithubLicense>>) -> Self {
         let clean_path = path.replace(format!("{}.git", MAIN_SEPARATOR).as_str(), "");
         let project_title = clean_path.split(MAIN_SEPARATOR).last().unwrap().to_string();
 
-        let mut has_readme = false;
-        let mut has_license = false;
         let mut readme_path: Option<PathBuf> = None;
         let mut license_path: Option<PathBuf> = None;
 
         README_VARIANTS.into_iter().for_each(|readme_name| {
-            if !has_readme {
+            if readme_path.is_none() {
                 let temp_pth = format!("{}{}{}", &clean_path, MAIN_SEPARATOR, readme_name);
-                has_readme = Path::new(temp_pth.as_str()).exists();
-                readme_path = if has_readme { Some(temp_pth.into()) } else { None };
+                readme_path = if Path::new(temp_pth.as_str()).exists() { Some(temp_pth.into()) } else { None };
             }
         });
 
         //TODO find a better and elegant way for this.
 
         LICENSE_VARIANTS.into_iter().for_each(|license_name| {
-            if !has_license {
+            if license_path.is_none() {
                 let temp_pth = format!("{}{}{}", &clean_path, MAIN_SEPARATOR, license_name);
-                has_license = Path::new(temp_pth.as_str()).exists();
-                license_path = if has_license { Some(temp_pth.into()) } else { None };
+                license_path = if Path::new(temp_pth.as_str()).exists() { Some(temp_pth.into()) } else { None };
             }
         });
 
-
-
-        if license_path.is_none() {
-            license_path = Some(format!("{}{}{}", &clean_path, MAIN_SEPARATOR, DEFAULT_LICENSE_FILE).into());
-        }
-        if readme_path.is_none() {
-            readme_path = Some(format!("{}{}{}", &clean_path, MAIN_SEPARATOR, DEFAULT_README_FILE).into());
-        }
-
+        
 
         Self {
             path: clean_path,
-            has_areadme: has_readme,
             readme_path,
-            has_alicense: has_license,
             license_path,
             project_title,
+            license: None
         }
     }
 
+    pub fn get_default_readme_path(&self) -> String {
+        format!("{}{}{}", self.path, MAIN_SEPARATOR, DEFAULT_README_FILE)
+    }
+
+    pub fn get_default_license_path(&self) -> String {
+        format!("{}{}{}", self.path, MAIN_SEPARATOR, DEFAULT_LICENSE_FILE)
+    }
+
     pub async fn set_dummy_readme(&mut self, program_settings: &ProgramSettings, print_mode: &mut PrintMode) {
-        if let Some(readme) = get_readme_template(program_settings, &self.clone()).await {
-            if let Err(error) = tokio::fs::write(self.readme_path.clone().unwrap(), readme).await {
-                print_mode.error_msg("Failure during README file creation");
-                print_mode.error_msg(error);
+        if self.readme_path.is_none() {
+            let dummy_path = self.get_default_readme_path();
+            if let Some(readme) = get_readme_template(program_settings, &self.clone()).await {
+                if let Err(error) = tokio::fs::write(&dummy_path, readme).await {
+                    print_mode.error_msg("Failure during README file creation");
+                    print_mode.error_msg(error);
+                }
+            } else {
+                print_mode.error_msg("Failure during README file content creation");
             }
-        } else {
-            print_mode.error_msg("Failure during README file content creation");
-        }
-        if !self.has_areadme {
-            self.has_areadme = true;
+            self.license_path = Some(PathBuf::from(dummy_path));
         }
     }
 
@@ -159,14 +154,14 @@ impl GitDir {
     }
 
 
+    #[async_recursion]
     async fn write_license(&mut self, program_settings: &ProgramSettings, print_mode: &mut PrintMode, user_choice: &GithubLicense, multi_license: bool) {
-        if !self.has_alicense {
-            if let Some(license_path) = &self.license_path {
+        if let Some(license_path) = &self.license_path {
                 if let Err(error) = tokio::fs::write(license_path, user_choice.clone().set_username_and_year().body).await {
                     print_mode.error_msg(error);
                 }
 
-                if self.has_areadme {
+                if self.readme_path.is_some() {
                     if multi_license {
                         self.replace_in_readme(user_choice, print_mode, false).await;
                     }
@@ -175,27 +170,28 @@ impl GitDir {
                     self.replace_in_readme(user_choice, print_mode, multi_license).await;
                 }
             }
-        } else if !multi_license {
+         else if !multi_license {
             print_mode.error_msg("Wanted to set a license, while a license was detected! Use the \"AppendLicenseMode\" for this!");
-        } else if let Some(license_path) = &self.license_path {
-            if let Err(error) = tokio::fs::write(license_path, user_choice.clone().set_username_and_year().body).await {
-                print_mode.error_msg(error);
-            }
-
-            if self.has_areadme {
-                if multi_license {
-                    self.replace_in_readme(user_choice, print_mode, true).await;
-                }
-            } else if ask_a_question("Found no README file - do you want to create one?") {
-                self.set_dummy_readme(program_settings, print_mode).await;
-                self.replace_in_readme(user_choice, print_mode, multi_license).await;
-            }
-        }
+        } else {
+             self.license_path = Some(self.get_default_license_path().into());
+             self.license = Some(user_choice.to_owned());
+             self.write_license(program_settings, print_mode, user_choice, multi_license).await
+         }
     }
 
+    fn list_licenses_and_get_user_input(licenses: &Vec<GithubLicense>) -> Result<usize, Box<dyn std::error::Error>>{
+        licenses.iter().enumerate()
+            .for_each(|(c, l)| {
+                println!("[{}] {}", c + 1, l.name)
+            }
+            );
+        Ok(read_input("Your Selection: ").parse::<usize>()?-1)
+    }
 
-    pub async fn execute_user_action(&mut self, program_settings: &ProgramSettings, print_mode: &mut PrintMode, op_mode: &OperatingMode) {
-        if let Some(user_choice) = communicate(program_settings).await {
+    pub async fn execute_user_action(&mut self, program_settings: &ProgramSettings, print_mode: &mut PrintMode, op_mode: &OperatingMode, licenses: Vec<GithubLicense>) {
+
+        if let Ok(uint) = GitDir::list_licenses_and_get_user_input(&licenses) {
+            let user_choice = &licenses[uint];
             match op_mode {
                 OperatingMode::SetNewLicense => {
                     self.write_license(program_settings, print_mode, &user_choice, false).await
@@ -209,7 +205,7 @@ impl GitDir {
                     self.write_license(program_settings, print_mode, &user_choice, true).await
                 }
                 OperatingMode::LicenseReplace => {
-                    if self.has_alicense && tokio::fs::remove_file(self.license_path.clone().unwrap()).await.is_err() {
+                    if self.license_path.is_some() && tokio::fs::remove_file(self.license_path.clone().unwrap()).await.is_err() {
                         print_mode.error_msg("Error occurred while deleting the current LICENSE file!");
                         return;
                     }

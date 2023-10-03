@@ -1,5 +1,5 @@
+use std::error::Error;
 use std::process::exit;
-
 use reqwest::header::{ACCEPT, AUTHORIZATION, HeaderMap, USER_AGENT};
 use reqwest::RequestBuilder;
 
@@ -7,6 +7,8 @@ use crate::git_dir::GitDir;
 use crate::github_license::{GithubLicense, MiniGithubLicense};
 use crate::read_input;
 use crate::settings_file::ProgramSettings;
+
+static GITHUB_API_URL: &str = "https://api.github.com/licenses";
 
 fn set_header(req: RequestBuilder, program_settings: &ProgramSettings) -> RequestBuilder {
     let mut headers = HeaderMap::new();
@@ -22,7 +24,7 @@ fn set_header(req: RequestBuilder, program_settings: &ProgramSettings) -> Reques
 
 pub async fn communicate(program_settings: &ProgramSettings) -> Option<GithubLicense> {
     let client = reqwest::Client::new();
-    let mut req = client.get("https://api.github.com/licenses");
+    let mut req = client.get(GITHUB_API_URL);
     req = set_header(req, program_settings);
     let some = req.send().await.unwrap();
     if let Ok(body) = some.text().await {
@@ -56,6 +58,35 @@ pub async fn communicate(program_settings: &ProgramSettings) -> Option<GithubLic
         None
     }
 }
+
+pub async fn get_all_licenses(program_settings: &ProgramSettings) -> Result<Vec<GithubLicense>, Box<dyn Error>> {
+    let client = reqwest::Client::new();
+    let mut req = client.get(GITHUB_API_URL);
+    req = set_header(req, program_settings);
+    let mut full_obj: Vec<GithubLicense> = vec![];
+    for mini in serde_json::from_str::<Vec<MiniGithubLicense>>(req.send().await?.text().await?.as_str())? {
+        let mut rq = client.get(mini.url);
+        rq = set_header(rq, program_settings);
+        // if let Ok(rq) = rq.send().await {
+        //     if let Ok(body) = rq.text().await {
+        //         if let Ok(item) = serde_json::from_str::<GithubLicense>(body.as_str()) {
+        //             full_obj.push(item);
+        //         }
+        //     }
+        // }
+
+        let full_license = serde_json::from_str::<GithubLicense>(
+            rq
+                .send()
+                .await?
+                .text()
+                .await?
+                .as_str())?;
+        full_obj.push(full_license);
+    }
+    Ok(full_obj)
+}
+
 
 pub async fn get_readme_template(program_settings: &ProgramSettings, directory: &GitDir) -> Option<String> {
     let client = reqwest::Client::new();

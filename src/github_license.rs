@@ -12,7 +12,7 @@ pub struct MiniGithubLicense {
     pub(crate) node_id: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct GithubLicense {
     pub(crate) key: String,
     pub(crate) name: String,

@@ -7,13 +7,14 @@ use tokio::time::Instant;
 use walkdir::WalkDir;
 
 use crate::git_dir::GitDir;
+use crate::github_license::GithubLicense;
 use crate::operating_mode::OperatingMode;
 
-pub async fn init_search(op_mode: OperatingMode, time: Instant) -> Vec<GitDir> {
+pub async fn init_search(op_mode: OperatingMode, time: Instant, licenses: Vec<GithubLicense>) -> Vec<GitDir> {
     let system = System::new_all();
     let mut task_holder: Vec<JoinHandle<Vec<GitDir>>> = vec![];
     system.disks().iter().for_each(|disk| {
-        task_holder.push(tokio::spawn(start_walking(disk.mount_point().display().to_string(), op_mode)))
+        task_holder.push(tokio::spawn(start_walking(disk.mount_point().display().to_string(), op_mode, licenses.clone())))
     });
     let mut dirs: Vec<GitDir> = vec![];
     futures::future::join_all(task_holder)
@@ -35,13 +36,13 @@ pub async fn init_search(op_mode: OperatingMode, time: Instant) -> Vec<GitDir> {
     dirs
 }
 
-async fn start_walking<T>(root: T, op_mode: OperatingMode) -> Vec<GitDir> where T: Display {
+async fn start_walking<T>(root: T, op_mode: OperatingMode, licences: Vec<GithubLicense>) -> Vec<GitDir> where T: Display {
     let mut task_holder: Vec<JoinHandle<Vec<GitDir>>> = vec![];
     WalkDir::new(root.to_string()).max_depth(1).into_iter().for_each(|dir| {
         if let Ok(entry) = dir {
             let tmp = entry.path().display().to_string();
             if !tmp.contains('$') {
-                task_holder.push(tokio::spawn(walk_deeper(tmp, op_mode)))
+                task_holder.push(tokio::spawn(walk_deeper(tmp, op_mode, licences.clone())))
             }
         }
     });
@@ -66,27 +67,27 @@ async fn start_walking<T>(root: T, op_mode: OperatingMode) -> Vec<GitDir> where 
     any_dir
 }
 
-async fn walk_deeper(root: String, op_mode: OperatingMode) -> Vec<GitDir> {
+async fn walk_deeper(root: String, op_mode: OperatingMode, licenses: Vec<GithubLicense>) -> Vec<GitDir> {
     WalkDir::new(root).into_iter().filter_map(|p_dir| {
         if let Ok(valid_dir) = p_dir {
             let path = valid_dir.path().display().to_string();
             if path.ends_with(format!("{}{}", MAIN_SEPARATOR, ".git").as_str()) &&
                 !path.contains(".cargo") && !path.contains('$') &&
                 !path.contains("AppData") {
-                let dir = GitDir::init(path);
+                let dir = GitDir::init(path, Some(licenses.clone()));
                 match op_mode {
                     OperatingMode::SetNewLicense => {
-                        if !dir.has_alicense {
+                        if dir.license_path.is_none() {
                             Some(dir)
                         } else { None }
                     }
                     OperatingMode::AppendLicense => {
-                        if dir.has_alicense {
+                        if dir.license_path.is_some() {
                             Some(dir)
                         } else { None }
                     }
                     OperatingMode::LicenseReplace => {
-                        if dir.has_alicense {
+                        if dir.license_path.is_some() {
                             Some(dir)
                         } else { None }
                     }
