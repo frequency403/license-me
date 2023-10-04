@@ -60,7 +60,7 @@ where
         .for_each(|dir| {
             if let Ok(entry) = dir {
                 let tmp = entry.path().display().to_string();
-                if !tmp.contains('$') {
+                if !tmp.contains('$') || !tmp.split(MAIN_SEPARATOR).collect::<Vec<&str>>()[1].starts_with('.'){
                     task_holder.push(tokio::spawn(walk_deeper(tmp, op_mode, licences.clone())))
                 }
             }
@@ -92,6 +92,7 @@ async fn walk_deeper(
                 let path = valid_dir.path().display().to_string();
                 if path.ends_with(format!("{}{}", MAIN_SEPARATOR, ".git").as_str())
                     && !path.contains(".cargo")
+                    && !path.replace(".git", "").contains(&format!("{}.", MAIN_SEPARATOR))
                     && !path.contains('$')
                     && !path.contains("AppData")
                 {
