@@ -1,5 +1,6 @@
 use std::fmt::Display;
 use std::path::MAIN_SEPARATOR;
+use futures::executor::block_on;
 
 use sysinfo::{DiskExt, System, SystemExt};
 use tokio::task::JoinHandle;
@@ -94,7 +95,7 @@ async fn walk_deeper(
                     && !path.contains('$')
                     && !path.contains("AppData")
                 {
-                    let dir = GitDir::init(path, Some(licenses.clone()));
+                    let dir = block_on(GitDir::init(path, Some(licenses.clone())));
                     match op_mode {
                         OperatingMode::SetNewLicense => {
                             if dir.license_path.is_none() {

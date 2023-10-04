@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-pub fn is_alike<T>(target: T, comparison: T, min_percent_to_reach: isize) -> (bool, isize)
+pub fn is_alike<T>(target: T, comparison: T, min_percent_to_reach: isize) -> bool
 where
     T: Display,
 {
@@ -23,8 +23,6 @@ where
 
     percent = (words_match as f64 / p1_s_words as f64) * 100.00;
 
-    (
-        percent >= min_percent_to_reach as f64,
-        percent.round() as isize,
-    )
+    percent >= min_percent_to_reach as f64
+
 }

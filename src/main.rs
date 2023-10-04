@@ -11,6 +11,7 @@ use lazy_static::lazy_static;
 use std::any::Any;
 use std::env::args;
 use std::error::Error;
+use std::fmt::format;
 use std::io::stdin;
 
 // Import the other files
@@ -42,8 +43,10 @@ fn print_help(pmm: &PrintMode) {
         These options will list all git repository's with a \"LICENSE\" file in it\n\n\n\
         --append-license\tAdds a license to the chosen directory, and appends a Link to the end of README.md\n\n\
         --replace-license\tIt will delete ALL license-like files in your chosen directory.\n\
-        \t\t\tCreates a new one with replacing the complete \"## License\" section in your README.md\n\n\
-        --show-all\t\tLists all git repository's, regardless of containing a LICENSE file and aborts\n"
+        \t\t\tCreates a new one with replacing the complete \"## License\" section in your README.md\n\
+        It also gives you the possibility to update your current license.\n\n\
+        --show-all\t\tLists all git repository's, regardless of containing a LICENSE file and aborts\n\n\
+        --unlicense\t\tDeletes a license from the chosen repositories or chosen repository"
     );
     std::process::exit(0);
 }
@@ -107,6 +110,8 @@ fn arg_modes(arguments: Vec<String>, pmm: &mut PrintMode) -> OperatingMode {
 
             // Show all git-repositorys, regardless of the license status
             "--show-all" => op_mode = OperatingMode::ShowAllGitDirs,
+
+            "--unlicense" => op_mode = OperatingMode::Unlicense,
             _ => {}
         })
     }
@@ -215,6 +220,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
             "Working on {}\nPath: {}\n\n",
             choice.project_title, choice.path
         ));
+        print_mode.normal_msg(format!("Found License: {} | Found Readme: {}", (choice.license_path.is_some() || choice.license.is_some()), choice.readme_path.is_some()));
+        if let Some(license) = &choice.license {
+            print_mode.normal_msg(format!("Recognized the \"{}\" License!", license.name))
+        }
         choice
             .execute_user_action(
                 &settings,
