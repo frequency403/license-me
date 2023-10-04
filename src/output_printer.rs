@@ -94,6 +94,15 @@ impl PrintMode {
             }
         }
     }
+
+    pub fn colored_bools(boolean: bool) -> String {
+        let string = if boolean {
+            ansi_term::Color::Green.bold().paint("true").to_string()
+        } else {
+            ansi_term::Color::Red.bold().paint("false").to_string()
+        };
+        string
+    }
     // Same applies for the debug messages
     pub fn debug_msg<T>(&self, msg: T, bar_opt: Option<&ProgressBar>)
     where

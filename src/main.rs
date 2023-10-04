@@ -214,13 +214,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
             chosen_directories.len()
         ));
         print_mode.normal_msg(format!(
-            "Working on {}\nPath: {}\n\n",
-            choice.project_title, choice.path
+            "Working on {}\nPath: {}",
+            ansi_term::Color::Blue.paint(&choice.project_title), choice.path
         ));
         print_mode.normal_msg(format!(
-            "Found License: {} | Found Readme: {}",
-            (choice.license_path.is_some() || choice.license.is_some()),
-            choice.readme_path.is_some()
+            "Found License: {} | Found Readme: {}\n\n",
+            PrintMode::colored_bools(choice.license_path.is_some() || choice.license.is_some() ),
+            PrintMode::colored_bools(choice.readme_path.is_some() )
         ));
         if let Some(license) = &choice.license {
             print_mode.normal_msg(format!("Recognized the \"{}\" License!", license.name))
