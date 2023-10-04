@@ -4,5 +4,5 @@ pub enum OperatingMode {
     AppendLicense,
     LicenseReplace,
     ShowAllGitDirs,
-    Unlicense //Deletes the license file and removes links in the readme file.
+    Unlicense, //Deletes the license file and removes links in the readme file.
 }

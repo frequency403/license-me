@@ -1,6 +1,6 @@
+use futures::executor::block_on;
 use std::fmt::Display;
 use std::path::MAIN_SEPARATOR;
-use futures::executor::block_on;
 
 use sysinfo::{DiskExt, System, SystemExt};
 use tokio::task::JoinHandle;

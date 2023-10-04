@@ -1,17 +1,15 @@
-use crate::alike::is_alike;
 use crate::api_communicator::get_all_licenses;
 use crate::git_dir::GitDir;
-use crate::github_license::GithubLicense;
+
 use crate::operating_mode::OperatingMode;
 use crate::output_printer::*;
 use crate::settings_file::ProgramSettings;
 use crate::walker::init_search;
 use indicatif::{ProgressBar, ProgressStyle};
-use lazy_static::lazy_static;
-use std::any::Any;
+
 use std::env::args;
 use std::error::Error;
-use std::fmt::format;
+
 use std::io::stdin;
 
 // Import the other files
@@ -118,7 +116,6 @@ fn arg_modes(arguments: Vec<String>, pmm: &mut PrintMode) -> OperatingMode {
     op_mode
 }
 
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     // Starting time measurement
@@ -220,7 +217,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
             "Working on {}\nPath: {}\n\n",
             choice.project_title, choice.path
         ));
-        print_mode.normal_msg(format!("Found License: {} | Found Readme: {}", (choice.license_path.is_some() || choice.license.is_some()), choice.readme_path.is_some()));
+        print_mode.normal_msg(format!(
+            "Found License: {} | Found Readme: {}",
+            (choice.license_path.is_some() || choice.license.is_some()),
+            choice.readme_path.is_some()
+        ));
         if let Some(license) = &choice.license {
             print_mode.normal_msg(format!("Recognized the \"{}\" License!", license.name))
         }
