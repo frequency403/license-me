@@ -231,6 +231,9 @@ impl GitDir {
         user_choice: &GithubLicense,
         multi_license: bool,
     ) {
+
+
+
         if let Some(license_path) = &self.license_path {
             if let Err(error) = tokio::fs::write(
                 license_path,
@@ -250,8 +253,8 @@ impl GitDir {
                 self.replace_in_readme(user_choice, print_mode, multi_license)
                     .await;
             }
-        } else if !multi_license {
-            print_mode.error_msg("Wanted to set a license, while a license was detected! Use the \"AppendLicenseMode\" for this!");
+        // } else if !multi_license {
+        //     print_mode.error_msg("Wanted to set a license, while a license was detected! Use the \"AppendLicenseMode\" for this!");
         } else {
             self.license_path = Some(self.get_default_license_path().into());
             self.license = Some(user_choice.to_owned());
