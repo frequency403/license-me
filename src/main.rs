@@ -10,7 +10,8 @@ use indicatif::{ProgressBar, ProgressStyle};
 use std::env::args;
 use std::error::Error;
 
-use std::io::stdin;
+use std::io:: stdin;
+use std::str::Split;
 
 // Import the other files
 mod alike;
@@ -116,6 +117,47 @@ fn arg_modes(arguments: Vec<String>, pmm: &mut PrintMode) -> OperatingMode {
     op_mode
 }
 
+//TODO hier weitermachen
+
+fn present_dirs(directories: &Vec<GitDir>, operating_mode: &OperatingMode, print_mode: &PrintMode) -> Result<Vec<usize>, Box<dyn Error>>{
+    directories.iter().enumerate().for_each(|(count, dir)| {
+        if operating_mode == OperatingMode::ShowAllGitDirs {
+            println!(
+                "[License: {}][Readme: {}] {}",
+                if dir.license_path.is_some() {
+                    ansi_term::Color::Green.paint("true ")
+                } else {
+                    ansi_term::Color::Red.paint("false")
+                },
+                if dir.readme_path.is_some() {
+                    ansi_term::Color::Green.paint("true ")
+                } else {
+                    ansi_term::Color::Red.paint("false")
+                },
+                dir.path
+            );
+        } else {
+            println!("[{}] {}", count + 1, dir.path);
+        }
+    });
+
+    // If the user just wanted to see how many git directories he has....
+    if operating_mode == OperatingMode::ShowAllGitDirs {
+        print_mode.normal_msg("\n\nPlease run again for modifying the directories\n");
+        return Err(Box::try_from("ShowAllAbort").unwrap());
+    }
+
+    let mut input_of_user: Vec<usize> = vec![];
+
+    match read_input("Enter the number(s) of the repository's to select them: ").as_str() {
+        x if x.contains(" ") => { x.split(" ").for_each(|e| {
+        })},
+        x if x.contains(",") => { x.split(",").for_each(|e| input_of_user.push(e)) },
+        _ => {}
+    }
+    Ok(input_of_user)
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     // Starting time measurement
@@ -201,8 +243,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
             std::process::exit(1)
         }
     });
-    // Here starts the main work -> see insert.rs
-    //let p_dirs = insert::insert_license(chosen_directories, &operating_mode, &mut print_mode);
 
     let mut processed_dirs_count: usize = 0;
 
