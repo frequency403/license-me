@@ -1,17 +1,16 @@
 use crate::api_communicator::get_all_licenses;
 use crate::git_dir::GitDir;
-
 use crate::operating_mode::OperatingMode;
 use crate::output_printer::*;
 use crate::settings_file::ProgramSettings;
 use crate::walker::init_search;
 use indicatif::{ProgressBar, ProgressStyle};
-
 use std::env::args;
 use std::error::Error;
-
-use std::io:: stdin;
-use std::str::Split;
+use std::io::stdin;
+use std::ops::Range;
+use strum::IntoEnumIterator;
+use crate::github_license::GithubLicense;
 
 // Import the other files
 mod alike;
@@ -23,6 +22,25 @@ mod operating_mode;
 mod output_printer;
 mod settings_file;
 mod walker;
+
+// Using a ProgressBar (spinner) from the crate "ProgressBar"
+pub fn progress_spinner() -> ProgressBar {
+    // Init main struct
+    let p_bar = ProgressBar::new_spinner();
+    // Set the style and the tick strings, iterating over all but not the last item every tick
+    p_bar.set_style(
+        ProgressStyle::with_template("\n{msg}{spinner}")
+            .unwrap()
+            .tick_strings(&[".   ", " .  ", "  . ", "   .", "  . ", " .  ", " finished!"]),
+    );
+    // The message shown at {msg}, must be set AFTER declaring the style
+    p_bar.set_message("Searching");
+    // Using steady tick for eye-friendliness
+    p_bar.enable_steady_tick(std::time::Duration::from_secs_f32(0.1));
+    // return the bar "object"
+    p_bar
+}
+
 
 // Prints CLI-Help & exits
 // Uses the PrintMode message Method
@@ -78,14 +96,14 @@ fn ask_a_question(question: &str) -> bool {
 
 // Decides on the given arguments,
 // which mode the program is running.
-fn arg_modes(arguments: Vec<String>, pmm: &mut PrintMode) -> OperatingMode {
+fn arg_modes(arguments: Vec<String>, pmm: &mut PrintMode, settings_file: &mut ProgramSettings) -> OperatingMode {
     // Uses a Vec<String> as container for the program Arguments
 
     let mut op_mode: OperatingMode = OperatingMode::SetNewLicense;
     // If there is an argument.....
     if arguments.len() > 1 {
         // Iterate over every argument, then....
-        arguments.iter().for_each(|argument| match argument.trim() {
+        arguments.iter().enumerate().for_each(|(count, argument)| match argument.trim() {
             // Print help text
             x if x == "help" || x == "-h" || x == "-help" || x == "--help" => print_help(pmm),
 
@@ -100,6 +118,8 @@ fn arg_modes(arguments: Vec<String>, pmm: &mut PrintMode) -> OperatingMode {
                 pmm.verbose = true;
                 pmm.verbose_msg("Verbose Mode ON", None)
             }
+
+            "--github-token" => {settings_file.github_api_token = Some(arguments[count].clone())},
 
             // Append/Add a LICENSE to a repo
             "--append-license" => op_mode = OperatingMode::AppendLicense,
@@ -117,23 +137,25 @@ fn arg_modes(arguments: Vec<String>, pmm: &mut PrintMode) -> OperatingMode {
     op_mode
 }
 
-//TODO hier weitermachen
 
-fn present_dirs(directories: &Vec<GitDir>, operating_mode: &OperatingMode, print_mode: &PrintMode) -> Result<Vec<usize>, Box<dyn Error>>{
+fn extract_and_validate_num(num_as_str: &str, len_of_vec: usize) -> Result<usize, Box<dyn Error>> {
+    if let Ok(int) = num_as_str.trim().parse::<isize>() {
+        if !int.is_positive() || int > len_of_vec as isize {
+            return Err(Box::from("NumNotPositiveOrInRange"));
+        }
+        Ok(int as usize)
+    } else {
+        Err(Box::from("NumParsingError"))
+    }
+}
+
+fn present_dirs(directories: &[GitDir], operating_mode: &OperatingMode, print_mode: &PrintMode) -> Result<Vec<usize>, Box<dyn Error>> {
     directories.iter().enumerate().for_each(|(count, dir)| {
-        if operating_mode == OperatingMode::ShowAllGitDirs {
+        if operating_mode == &OperatingMode::ShowAllGitDirs {
             println!(
                 "[License: {}][Readme: {}] {}",
-                if dir.license_path.is_some() {
-                    ansi_term::Color::Green.paint("true ")
-                } else {
-                    ansi_term::Color::Red.paint("false")
-                },
-                if dir.readme_path.is_some() {
-                    ansi_term::Color::Green.paint("true ")
-                } else {
-                    ansi_term::Color::Red.paint("false")
-                },
+                PrintMode::colored_bools(dir.license_path.is_some()),
+                PrintMode::colored_bools(dir.readme_path.is_some()),
                 dir.path
             );
         } else {
@@ -142,7 +164,7 @@ fn present_dirs(directories: &Vec<GitDir>, operating_mode: &OperatingMode, print
     });
 
     // If the user just wanted to see how many git directories he has....
-    if operating_mode == OperatingMode::ShowAllGitDirs {
+    if operating_mode == &OperatingMode::ShowAllGitDirs {
         print_mode.normal_msg("\n\nPlease run again for modifying the directories\n");
         return Err(Box::try_from("ShowAllAbort").unwrap());
     }
@@ -150,99 +172,43 @@ fn present_dirs(directories: &Vec<GitDir>, operating_mode: &OperatingMode, print
     let mut input_of_user: Vec<usize> = vec![];
 
     match read_input("Enter the number(s) of the repository's to select them: ").as_str() {
-        x if x.contains(" ") => { x.split(" ").for_each(|e| {
-        })},
-        x if x.contains(",") => { x.split(",").for_each(|e| input_of_user.push(e)) },
+        x if x.contains(' ') => {
+            x.split(' ').for_each(|e| {
+                if let Ok(parsed) = extract_and_validate_num(e, directories.len()) {
+                    input_of_user.push(parsed)
+                }
+            })
+        }
+        x if x.contains(',') => {
+            x.split(',').for_each(|e| {
+                if let Ok(parsed) = extract_and_validate_num(e, directories.len()) {
+                    input_of_user.push(parsed)
+                }
+            })
+        }
+        x if x.contains('-') => {
+            let mut range: Range<usize> = 69420..69421; // In Honor of Omer
+            x.split('-').for_each(|e| {
+                if let Ok(parsed) = extract_and_validate_num(e, directories.len()) {
+                    if range.start == 69420 {
+                        range.start = parsed
+                    } else {
+                        range.end = parsed + 1
+                    }
+                }
+            });
+            range.for_each(|choice| input_of_user.push(choice))
+        }
+        x if x.contains("all") => { directories.iter().enumerate().for_each(|entry| input_of_user.push(entry.0)) }
         _ => {}
     }
     Ok(input_of_user)
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
-    // Starting time measurement
-    let sys_time: tokio::time::Instant = tokio::time::Instant::now();
-
-    // Init the Print mode Struct
-    let mut print_mode: PrintMode = PrintMode::norm();
-
-    // Init the SettingsOptions
-    let settings: ProgramSettings = ProgramSettings::init(&mut print_mode).await;
-
-    // Check the given arguments
-    let operating_mode: OperatingMode = arg_modes(args().collect::<Vec<String>>(), &mut print_mode);
-
-    let progress_bar: ProgressBar = progress_spinner();
-    let all_licenses = get_all_licenses(&settings).await?;
-    let found_git_dirs: Vec<GitDir> =
-        init_search(operating_mode, sys_time, all_licenses.clone()).await;
-    progress_bar.finish_and_clear();
-
-    found_git_dirs.iter().enumerate().for_each(|(count, dir)| {
-        if operating_mode == OperatingMode::ShowAllGitDirs {
-            println!(
-                "[License: {}][Readme: {}] {}",
-                if dir.license_path.is_some() {
-                    ansi_term::Color::Green.paint("true ")
-                } else {
-                    ansi_term::Color::Red.paint("false")
-                },
-                if dir.readme_path.is_some() {
-                    ansi_term::Color::Green.paint("true ")
-                } else {
-                    ansi_term::Color::Red.paint("false")
-                },
-                dir.path
-            );
-        } else {
-            println!("[{}] {}", count + 1, dir.path);
-        }
-    });
-
-    // If the user just wanted to see how many git directories he has....
-    if operating_mode == OperatingMode::ShowAllGitDirs {
-        print_mode.normal_msg("\n\nPlease run again for modifying the directories\n");
-        // then abort program.
-        return Ok(());
-    }
-    // Using the helper function for reading the Input
-    let input_of_user: String =
-        read_input("Enter the number(s) of the repository's to select them: ");
-
-    let mut chosen_directories: Vec<GitDir> = vec![];
-
-    // Split string on Whitespace, which creates a vector
-    input_of_user.split_terminator(' ').for_each(|g| {
-        // For each element of the vector, try to parse the string as int
-        if let Ok(int) = g.trim().parse::<isize>() {
-            // On purpose used "signed" int's, that the error can be caught here
-            if int.is_positive() {
-                if found_git_dirs.len() < int as usize || int == 0 {
-                    print_mode.error_msg(format!("Index {} not available", int))
-                } else {
-                    print_mode.verbose_msg(
-                        format!(
-                            "Added: {} to processing collection",
-                            &found_git_dirs[int as usize - 1]
-                        ),
-                        None,
-                    );
-                    // Push chosen dirs to the empty collection - also correct the Index with "-1"
-                    chosen_directories.push(found_git_dirs[int as usize - 1].clone());
-                }
-            }
-            // Use all directories you found
-        } else if g == "all" {
-            found_git_dirs.iter().for_each(|item| {
-                print_mode.verbose_msg(format!("Added: {} to processing collection", item), None);
-                chosen_directories.push(item.clone())
-            });
-            // If something goes wrong
-        } else {
-            print_mode.error_msg("Invalid input - aborting....");
-            std::process::exit(1)
-        }
-    });
+async fn recursive_main(found_git_dirs: Vec<GitDir>, all_licenses: Vec<GithubLicense>, mut print_mode: PrintMode, settings: ProgramSettings, operating_mode: OperatingMode) -> Result<usize, Box<dyn Error>> {
+    let chosen_directories: Vec<GitDir> = present_dirs(&found_git_dirs, &operating_mode, &print_mode)?.into_iter().map(|num| {
+        found_git_dirs[num - 1].clone()
+    }).collect();
 
     let mut processed_dirs_count: usize = 0;
 
@@ -259,8 +225,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         ));
         print_mode.normal_msg(format!(
             "Found License: {} | Found Readme: {}\n\n",
-            PrintMode::colored_bools(choice.license_path.is_some() || choice.license.is_some() ),
-            PrintMode::colored_bools(choice.readme_path.is_some() )
+            PrintMode::colored_bools(choice.license_path.is_some() || choice.license.is_some()),
+            PrintMode::colored_bools(choice.readme_path.is_some())
         ));
         if let Some(license) = &choice.license {
             print_mode.normal_msg(format!("Recognized the \"{}\" License!", license.name))
@@ -275,6 +241,63 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .await;
         processed_dirs_count += 1;
     }
+    Ok(processed_dirs_count)
+}
+
+fn print_initial() {
+    println!("\t\t|--------------------------------------------|");
+    println!("\t\t|-----------------License Me-----------------|");
+    println!("\t\t|--------------------------------------------|");
+    println!("\t\t|------------Support us On GitHub------------|");
+    println!("\t\t|-https://github.com/frequency403/license-me-|");
+    println!("\t\t|---Idea and Programming by Oliver Schantz---|");
+    println!("\t\t|--------------------------------------------|");
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
+    print_initial();
+    return Ok(());
+    // Starting time measurement
+    let sys_time: tokio::time::Instant = tokio::time::Instant::now();
+
+    // Init the Print mode Struct
+    let mut print_mode: PrintMode = PrintMode::norm();
+
+    // Init the SettingsOptions
+    let mut settings: ProgramSettings = ProgramSettings::init(&mut print_mode).await;
+
+    let mut processed_dirs_count = 0;
+
+    // Check the given arguments
+    let mut operating_mode: OperatingMode = arg_modes(args().collect::<Vec<String>>(), &mut print_mode, &mut settings);
+
+    let progress_bar: ProgressBar = progress_spinner();
+    let all_licenses = get_all_licenses(&settings).await?;
+    let found_git_dirs: Vec<GitDir> =
+        init_search(operating_mode, sys_time, all_licenses.clone()).await;
+    progress_bar.finish_and_clear();
+
+    while let Ok(num) = recursive_main(found_git_dirs.clone(), all_licenses.clone(), print_mode.clone(), settings.clone(), operating_mode).await {
+        processed_dirs_count += num;
+        if ask_a_question("Do you want to repeat the Process?") {
+            OperatingMode::iter().enumerate().for_each(|(c, n)| {
+                print_mode.normal_msg(format!("[{}] {:#?}", c + 1, n));
+            });
+            if let Ok(num) = read_input("Choose your operating mode:").parse::<usize>() {
+                if let Some(enumeration) = OperatingMode::from_usize(num - 1) {
+                    operating_mode = enumeration;
+                    continue;
+                } else {
+                    break;
+                }
+            } else {
+                break;
+            }
+        } else {
+            break;
+        }
+    }
 
     // Print all errors the program collected at last.
     print_mode
@@ -283,20 +306,3 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-// Using a ProgressBar (spinner) from the crate "ProgressBar"
-pub fn progress_spinner() -> ProgressBar {
-    // Init main struct
-    let p_bar = ProgressBar::new_spinner();
-    // Set the style and the tick strings, iterating over all but not the last item every tick
-    p_bar.set_style(
-        ProgressStyle::with_template("\n{msg}{spinner}")
-            .unwrap()
-            .tick_strings(&[".   ", " .  ", "  . ", "   .", "  . ", " .  ", " finished!"]),
-    );
-    // The message shown at {msg}, must be set AFTER declaring the style
-    p_bar.set_message("Searching");
-    // Using steady tick for eye-friendliness
-    p_bar.enable_steady_tick(std::time::Duration::from_secs_f32(0.1));
-    // return the bar "object"
-    p_bar
-}
