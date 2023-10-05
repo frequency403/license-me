@@ -1,16 +1,18 @@
-use crate::api_communicator::get_all_licenses;
-use crate::git_dir::GitDir;
-use crate::operating_mode::OperatingMode;
-use crate::output_printer::*;
-use crate::settings_file::ProgramSettings;
-use crate::walker::init_search;
-use indicatif::{ProgressBar, ProgressStyle};
 use std::env::args;
 use std::error::Error;
 use std::io::stdin;
 use std::ops::Range;
+
+use indicatif::{ProgressBar, ProgressStyle};
 use strum::IntoEnumIterator;
+
+use crate::api_communicator::get_all_licenses;
+use crate::git_dir::GitDir;
 use crate::github_license::GithubLicense;
+use crate::operating_mode::OperatingMode;
+use crate::output_printer::*;
+use crate::settings_file::ProgramSettings;
+use crate::walker::init_search;
 
 // Import the other files
 mod alike;
@@ -119,7 +121,7 @@ fn arg_modes(arguments: Vec<String>, pmm: &mut PrintMode, settings_file: &mut Pr
                 pmm.verbose_msg("Verbose Mode ON", None)
             }
 
-            "--github-token" => {settings_file.github_api_token = Some(arguments[count].clone())},
+            "--github-token" => { settings_file.github_api_token = Some(arguments[count].clone()) }
 
             // Append/Add a LICENSE to a repo
             "--append-license" => op_mode = OperatingMode::AppendLicense,
@@ -151,15 +153,24 @@ fn extract_and_validate_num(num_as_str: &str, len_of_vec: usize) -> Result<usize
 
 fn present_dirs(directories: &[GitDir], operating_mode: &OperatingMode, print_mode: &PrintMode) -> Result<Vec<usize>, Box<dyn Error>> {
     directories.iter().enumerate().for_each(|(count, dir)| {
-        if operating_mode == &OperatingMode::ShowAllGitDirs {
-            println!(
-                "[License: {}][Readme: {}] {}",
-                PrintMode::colored_bools(dir.license_path.is_some()),
-                PrintMode::colored_bools(dir.readme_path.is_some()),
-                dir.path
-            );
-        } else {
-            println!("[{}] {}", count + 1, dir.path);
+        match operating_mode {
+            OperatingMode::SetNewLicense => {
+                if dir.license_path.is_none() {
+                    println!("[{}] {}", count + 1, dir.path);
+                }
+            }
+            OperatingMode::ShowAllGitDirs => {
+                println!(
+                    "[License: {}][Readme: {}] {}",
+                    PrintMode::colored_bools(dir.license_path.is_some()),
+                    PrintMode::colored_bools(dir.readme_path.is_some()),
+                    dir.path
+                );
+            }
+            _ => {
+                if dir.license_path.is_some() {
+                    println!("[{}] {}", count + 1, dir.path);
+                }}
         }
     });
 
@@ -245,19 +256,20 @@ async fn recursive_main(found_git_dirs: Vec<GitDir>, all_licenses: Vec<GithubLic
 }
 
 fn print_initial() {
+    clear_term();
     println!("\t\t|--------------------------------------------|");
     println!("\t\t|-----------------License Me-----------------|");
     println!("\t\t|--------------------------------------------|");
     println!("\t\t|------------Support us On GitHub------------|");
     println!("\t\t|-https://github.com/frequency403/license-me-|");
     println!("\t\t|---Idea and Programming by Oliver Schantz---|");
-    println!("\t\t|--------------------------------------------|");
+    println!("\t\t|--------------------------------------------|\n\n");
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     print_initial();
-    return Ok(());
+
     // Starting time measurement
     let sys_time: tokio::time::Instant = tokio::time::Instant::now();
 
@@ -272,30 +284,36 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Check the given arguments
     let mut operating_mode: OperatingMode = arg_modes(args().collect::<Vec<String>>(), &mut print_mode, &mut settings);
 
-    let progress_bar: ProgressBar = progress_spinner();
-    let all_licenses = get_all_licenses(&settings).await?;
-    let found_git_dirs: Vec<GitDir> =
-        init_search(operating_mode, sys_time, all_licenses.clone()).await;
-    progress_bar.finish_and_clear();
 
-    while let Ok(num) = recursive_main(found_git_dirs.clone(), all_licenses.clone(), print_mode.clone(), settings.clone(), operating_mode).await {
-        processed_dirs_count += num;
-        if ask_a_question("Do you want to repeat the Process?") {
-            OperatingMode::iter().enumerate().for_each(|(c, n)| {
-                print_mode.normal_msg(format!("[{}] {:#?}", c + 1, n));
-            });
-            if let Ok(num) = read_input("Choose your operating mode:").parse::<usize>() {
-                if let Some(enumeration) = OperatingMode::from_usize(num - 1) {
-                    operating_mode = enumeration;
-                    continue;
+    loop {
+        let mut all_licenses: Vec<GithubLicense> = vec![];
+        let mut found_git_dirs: Vec<GitDir> = vec![];
+        if all_licenses.is_empty() && found_git_dirs.is_empty() {
+            let progress_bar: ProgressBar = progress_spinner();
+            all_licenses = get_all_licenses(&settings).await?;
+            found_git_dirs = init_search(sys_time, all_licenses.clone()).await;
+            progress_bar.finish_and_clear();
+        }
+
+        if let Ok(num) = recursive_main(found_git_dirs.clone(), all_licenses.clone(), print_mode.clone(), settings.clone(), operating_mode).await {
+            processed_dirs_count += num;
+            if ask_a_question("Do you want to repeat the Process?") {
+                OperatingMode::iter().enumerate().for_each(|(c, n)| {
+                    print_mode.normal_msg(format!("[{}] {:#?}", c + 1, n));
+                });
+                if let Ok(num) = read_input("Choose your operating mode:").parse::<usize>() {
+                    if let Some(enumeration) = OperatingMode::from_usize(num - 1) {
+                        operating_mode = enumeration;
+                        continue;
+                    } else {
+                        break;
+                    }
                 } else {
                     break;
                 }
             } else {
                 break;
             }
-        } else {
-            break;
         }
     }
 

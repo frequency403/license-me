@@ -1,17 +1,17 @@
-use async_recursion::async_recursion;
 use std::fmt::{Display, Formatter};
-use std::path::{Path, PathBuf, MAIN_SEPARATOR};
+use std::path::{MAIN_SEPARATOR, Path, PathBuf};
 
+use async_recursion::async_recursion;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 
+use crate::{ask_a_question, read_input};
 use crate::alike::is_alike;
 use crate::api_communicator::get_readme_template;
 use crate::github_license::GithubLicense;
 use crate::operating_mode::OperatingMode;
 use crate::output_printer::PrintMode;
 use crate::settings_file::ProgramSettings;
-use crate::{ask_a_question, read_input};
 
 static README_VARIANTS: [&str; 6] = [
     "README",
@@ -132,94 +132,97 @@ impl GitDir {
         let mut new_file_content = String::new();
         let mut new_license_section = String::new();
 
-        // Open Readme file or print error
-        if let Ok(mut file_content) = File::open(&self.readme_path.clone().unwrap()).await {
-            // placeholder for old file content
-            let mut old_file_content = String::new();
+        if let Some(path) = &self.readme_path.clone() {
 
-            // read old filecontent to string
+            // Open Readme file or print error
+            if let Ok(mut file_content) = File::open(path).await {
+                // placeholder for old file content
+                let mut old_file_content = String::new();
 
-            if file_content
-                .read_to_string(&mut old_file_content)
-                .await
-                .is_ok()
-            {
-                // Split file into slices of strings
-                let slices_of_old_file = &mut old_file_content
-                    .split_inclusive("##")
-                    .collect::<Vec<&str>>();
+                // read old filecontent to string
 
-                // check if there is a License section
-                if let Some(index_of_license) = slices_of_old_file.iter().position(|&c| {
-                    c.contains(" License ")
-                        || c.contains(" LICENSE ")
-                        || c.contains(" License\n")
-                        || c.contains(" LICENSE\n")
-                }) {
-                    //TODO Implement a "is like" function to make this block even more accurate. - Works best when there is a "License" inside of the GitDir struct
+                if file_content
+                    .read_to_string(&mut old_file_content)
+                    .await
+                    .is_ok()
+                {
+                    // Split file into slices of strings
+                    let slices_of_old_file = &mut old_file_content
+                        .split_inclusive("##")
+                        .collect::<Vec<&str>>();
 
-                    // Then replace it
-                    if let Some(content) = slices_of_old_file.last() {
-                        if multi_license {
-                            if content == &slices_of_old_file[index_of_license]
-                                || is_alike(content, &slices_of_old_file[index_of_license], 70)
-                            {
-                                new_license_section = [
-                                    slices_of_old_file[index_of_license],
-                                    "\n",
-                                    &license.get_markdown_license_link(),
-                                ]
-                                .concat()
+                    // check if there is a License section
+                    if let Some(index_of_license) = slices_of_old_file.iter().position(|&c| {
+                        c.contains(" License ")
+                            || c.contains(" LICENSE ")
+                            || c.contains(" License\n")
+                            || c.contains(" LICENSE\n")
+                    }) {
+                        //TODO Implement a "is like" function to make this block even more accurate. - Works best when there is a "License" inside of the GitDir struct
+
+                        // Then replace it
+                        if let Some(content) = slices_of_old_file.last() {
+                            if multi_license {
+                                if content == &slices_of_old_file[index_of_license]
+                                    || is_alike(content, &slices_of_old_file[index_of_license], 70)
+                                {
+                                    new_license_section = [
+                                        slices_of_old_file[index_of_license],
+                                        "\n",
+                                        &license.get_markdown_license_link(),
+                                    ]
+                                        .concat()
+                                } else {
+                                    new_license_section = [
+                                        slices_of_old_file[index_of_license]
+                                            .replace("##", "")
+                                            .as_str(),
+                                        "\n",
+                                        &license.get_markdown_license_link(),
+                                        "\n\n##",
+                                    ]
+                                        .concat()
+                                }
+                            } else if content == &slices_of_old_file[index_of_license] {
+                                new_license_section =
+                                    [" License\n", &license.get_markdown_license_link()].concat()
                             } else {
-                                new_license_section = [
-                                    slices_of_old_file[index_of_license]
-                                        .replace("##", "")
-                                        .as_str(),
-                                    "\n",
-                                    &license.get_markdown_license_link(),
-                                    "\n\n##",
-                                ]
-                                .concat()
+                                new_license_section =
+                                    [" License\n", &license.get_markdown_license_link(), "\n\n##"]
+                                        .concat()
                             }
-                        } else if content == &slices_of_old_file[index_of_license] {
-                            new_license_section =
-                                [" License\n", &license.get_markdown_license_link()].concat()
-                        } else {
-                            new_license_section =
-                                [" License\n", &license.get_markdown_license_link(), "\n\n##"]
-                                    .concat()
                         }
+                        slices_of_old_file[index_of_license] = &new_license_section;
                     }
-                    slices_of_old_file[index_of_license] = &new_license_section;
-                }
 
-                // Rebuild the new file from the slices
-                for slice in slices_of_old_file {
-                    new_file_content = new_file_content + slice;
-                }
+                    // Rebuild the new file from the slices
+                    for slice in slices_of_old_file {
+                        new_file_content = new_file_content + slice;
+                    }
 
-                // Then overwrite the License file or print message on error
-                match tokio::fs::write(self.readme_path.clone().unwrap(), new_file_content).await {
-                    Ok(_) => pm.verbose_msg(
-                        format!(
-                            "Success in overwriting {}",
-                            self.readme_path.clone().unwrap().display()
+                    // Then overwrite the License file or print message on error
+                    match tokio::fs::write(self.readme_path.clone().unwrap(), new_file_content).await {
+                        Ok(_) => pm.verbose_msg(
+                            format!(
+                                "Success in overwriting {}",
+                                self.readme_path.clone().unwrap().display()
+                            ),
+                            None,
                         ),
-                        None,
-                    ),
-                    Err(msg) => pm.error_msg(format!(
-                        "{} occurred while writing {}",
-                        msg,
-                        self.readme_path.clone().unwrap().display()
-                    )),
+                        Err(msg) => pm.error_msg(format!(
+                            "{} occurred while writing {}",
+                            msg,
+                            self.readme_path.clone().unwrap().display()
+                        )),
+                    }
                 }
+            } else if let Err(err) = File::open(self.readme_path.clone().unwrap()).await {
+                pm.error_msg(format!(
+                    "{} occurred while opening file: {}",
+                    err,
+                    self.readme_path.clone().unwrap().display()
+                ))
             }
-        } else if let Err(err) = File::open(self.readme_path.clone().unwrap()).await {
-            pm.error_msg(format!(
-                "{} occurred while opening file: {}",
-                err,
-                self.readme_path.clone().unwrap().display()
-            ))
         }
     }
 
@@ -231,15 +234,12 @@ impl GitDir {
         user_choice: &GithubLicense,
         multi_license: bool,
     ) {
-
-
-
         if let Some(license_path) = &self.license_path {
             if let Err(error) = tokio::fs::write(
                 license_path,
                 user_choice.clone().set_username_and_year().body,
             )
-            .await
+                .await
             {
                 print_mode.error_msg(error);
             }
@@ -250,11 +250,10 @@ impl GitDir {
                 }
             } else if ask_a_question("Found no README file - do you want to create one?") {
                 self.set_dummy_readme(program_settings, print_mode).await;
-                self.replace_in_readme(user_choice, print_mode, multi_license)
-                    .await;
+                self.replace_in_readme(user_choice, print_mode, multi_license).await;
             }
-        // } else if !multi_license {
-        //     print_mode.error_msg("Wanted to set a license, while a license was detected! Use the \"AppendLicenseMode\" for this!");
+            // } else if !multi_license {
+            //     print_mode.error_msg("Wanted to set a license, while a license was detected! Use the \"AppendLicenseMode\" for this!");
         } else {
             self.license_path = Some(self.get_default_license_path().into());
             self.license = Some(user_choice.to_owned());
@@ -317,8 +316,8 @@ impl GitDir {
                 OperatingMode::LicenseReplace => {
                     if self.license_path.is_some()
                         && tokio::fs::remove_file(self.license_path.clone().unwrap())
-                            .await
-                            .is_err()
+                        .await
+                        .is_err()
                     {
                         print_mode
                             .error_msg("Error occurred while deleting the current LICENSE file!");

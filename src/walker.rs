@@ -1,18 +1,14 @@
 use futures::executor::block_on;
 use std::fmt::Display;
 use std::path::MAIN_SEPARATOR;
-
 use sysinfo::{DiskExt, System, SystemExt};
 use tokio::task::JoinHandle;
 use tokio::time::Instant;
 use walkdir::WalkDir;
-
 use crate::git_dir::GitDir;
 use crate::github_license::GithubLicense;
-use crate::operating_mode::OperatingMode;
 
 pub async fn init_search(
-    op_mode: OperatingMode,
     time: Instant,
     licenses: Vec<GithubLicense>,
 ) -> Vec<GitDir> {
@@ -21,7 +17,6 @@ pub async fn init_search(
     system.disks().iter().for_each(|disk| {
         task_holder.push(tokio::spawn(start_walking(
             disk.mount_point().display().to_string(),
-            op_mode,
             licenses.clone(),
         )))
     });
@@ -47,7 +42,6 @@ pub async fn init_search(
 
 async fn start_walking<T>(
     root: T,
-    op_mode: OperatingMode,
     licences: Vec<GithubLicense>,
 ) -> Vec<GitDir>
 where
@@ -61,7 +55,7 @@ where
             if let Ok(entry) = dir {
                 let tmp = entry.path().display().to_string();
                 if !tmp.contains('$') || !tmp.split(MAIN_SEPARATOR).collect::<Vec<&str>>()[1].starts_with('.'){
-                    task_holder.push(tokio::spawn(walk_deeper(tmp, op_mode, licences.clone())))
+                    task_holder.push(tokio::spawn(walk_deeper(tmp, licences.clone())))
                 }
             }
         });
@@ -82,7 +76,6 @@ where
 
 async fn walk_deeper(
     root: String,
-    op_mode: OperatingMode,
     licenses: Vec<GithubLicense>,
 ) -> Vec<GitDir> {
     WalkDir::new(root)
@@ -97,30 +90,31 @@ async fn walk_deeper(
                     && !path.contains("AppData")
                 {
                     let dir = block_on(GitDir::init(path, Some(licenses.clone())));
-                    match op_mode {
-                        OperatingMode::SetNewLicense => {
-                            if dir.license_path.is_none() {
-                                Some(dir)
-                            } else {
-                                None
-                            }
-                        }
-                        OperatingMode::AppendLicense => {
-                            if dir.license_path.is_some() {
-                                Some(dir)
-                            } else {
-                                None
-                            }
-                        }
-                        OperatingMode::LicenseReplace => {
-                            if dir.license_path.is_some() {
-                                Some(dir)
-                            } else {
-                                None
-                            }
-                        }
-                        _ => Some(dir),
-                    }
+                    Some(dir)
+                    // match op_mode {
+                    //     OperatingMode::SetNewLicense => {
+                    //         if dir.license_path.is_none() {
+                    //             Some(dir)
+                    //         } else {
+                    //             None
+                    //         }
+                    //     }
+                    //     OperatingMode::AppendLicense => {
+                    //         if dir.license_path.is_some() {
+                    //             Some(dir)
+                    //         } else {
+                    //             None
+                    //         }
+                    //     }
+                    //     OperatingMode::LicenseReplace => {
+                    //         if dir.license_path.is_some() {
+                    //             Some(dir)
+                    //         } else {
+                    //             None
+                    //         }
+                    //     }
+                    //     _ => Some(dir),
+                    // }
                 } else {
                     None
                 }
