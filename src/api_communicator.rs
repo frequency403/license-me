@@ -1,5 +1,5 @@
 use reqwest::header::{HeaderMap, ACCEPT, AUTHORIZATION, USER_AGENT};
-use reqwest::RequestBuilder;
+use reqwest::{RequestBuilder, StatusCode};
 use std::error::Error;
 use crate::git_dir::GitDir;
 use crate::github_license::{GithubLicense, MiniGithubLicense};
@@ -26,14 +26,29 @@ pub async fn get_all_licenses(
     let mut req = client.get(GITHUB_API_URL);
     req = set_header(req, program_settings);
     let mut full_obj: Vec<GithubLicense> = vec![];
-    for mini in
-        serde_json::from_str::<Vec<MiniGithubLicense>>(req.send().await?.text().await?.as_str())?
-    {
-        let mut rq = client.get(mini.url);
-        rq = set_header(rq, program_settings);
-        let full_license =
-            serde_json::from_str::<GithubLicense>(rq.send().await?.text().await?.as_str())?;
-        full_obj.push(full_license);
+
+
+    let request_sender = req.send().await?;
+
+    if request_sender.status() == StatusCode::OK {
+        for mini in
+        serde_json::from_str::<Vec<MiniGithubLicense>>(request_sender.text().await?.as_str())?
+        {
+            let mut rq = client.get(mini.url);
+            rq = set_header(rq, program_settings);
+            let rqs = rq.send().await?;
+
+            if rqs.status() == StatusCode::OK {
+                let full_license =
+                    serde_json::from_str::<GithubLicense>(rqs.text().await?.as_str())?;
+                full_obj.push(full_license);
+            } else {
+                return Err(Box::try_from(rqs.text().await?).unwrap());
+            }
+
+        }
+    } else {
+        return Err(Box::try_from(request_sender.text().await?).unwrap());
     }
     Ok(full_obj)
 }

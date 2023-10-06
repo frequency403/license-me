@@ -2,6 +2,7 @@ use std::env::args;
 use std::error::Error;
 use std::io::stdin;
 use std::ops::Range;
+use std::process;
 
 use indicatif::{ProgressBar, ProgressStyle};
 use strum::IntoEnumIterator;
@@ -67,7 +68,7 @@ fn print_help(pmm: &PrintMode) {
         --show-all\t\tLists all git repository's, regardless of containing a LICENSE file and aborts\n\n\
         --unlicense\t\tDeletes a license from the chosen repositories or chosen repository"
     );
-    std::process::exit(0);
+    process::exit(0);
 }
 
 // Clears the Terminal
@@ -84,7 +85,7 @@ fn read_input(prompt: &str) -> String {
     let mut s = String::new();
     println!("\n\n{}", prompt);
     if stdin().read_line(&mut s).is_err() {
-        std::process::exit(1);
+        process::exit(1);
     };
     s.trim().to_string()
 }
@@ -177,7 +178,7 @@ fn present_dirs(directories: &[GitDir], operating_mode: &OperatingMode, print_mo
     // If the user just wanted to see how many git directories he has....
     if operating_mode == &OperatingMode::ShowAllGitDirs {
         print_mode.normal_msg("\n\nPlease run again for modifying the directories\n");
-        return Err(Box::try_from("ShowAllAbort").unwrap());
+       process::exit(0);
     }
 
     let mut input_of_user: Vec<usize> = vec![];
@@ -211,6 +212,7 @@ fn present_dirs(directories: &[GitDir], operating_mode: &OperatingMode, print_mo
             range.for_each(|choice| input_of_user.push(choice))
         }
         x if x.contains("all") => { directories.iter().enumerate().for_each(|entry| input_of_user.push(entry.0)) }
+        x if x.parse::<usize>().is_ok() => {input_of_user.push(extract_and_validate_num(x, directories.len())?)}
         _ => {}
     }
     Ok(input_of_user)
@@ -284,10 +286,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Check the given arguments
     let mut operating_mode: OperatingMode = arg_modes(args().collect::<Vec<String>>(), &mut print_mode, &mut settings);
 
+    let mut all_licenses: Vec<GithubLicense> = vec![];
+    let mut found_git_dirs: Vec<GitDir> = vec![];
 
     loop {
-        let mut all_licenses: Vec<GithubLicense> = vec![];
-        let mut found_git_dirs: Vec<GitDir> = vec![];
         if all_licenses.is_empty() && found_git_dirs.is_empty() {
             let progress_bar: ProgressBar = progress_spinner();
             all_licenses = get_all_licenses(&settings).await?;
