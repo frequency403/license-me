@@ -1,8 +1,10 @@
+use std::error::Error;
 use std::fmt::{Display, Formatter};
-use std::path::{Path, MAIN_SEPARATOR};
+use std::path::{MAIN_SEPARATOR, Path};
 use std::string::ToString;
 
 use serde::{Deserialize, Serialize};
+use tokio::io::AsyncWriteExt;
 
 use crate::output_printer::PrintMode;
 
@@ -17,7 +19,7 @@ pub struct ProgramSettings {
 impl Default for ProgramSettings {
     fn default() -> Self {
         Self {
-            github_user: "frequency403".to_string(),
+            github_user: String::new(),
             github_api_token: None,
             readme_template_link: "https://raw.githubusercontent.com/PurpleBooth/a-good-readme-template/main/README.md".to_string(),
             replace_in_readme_phrase: "# Project Title".to_string(),
@@ -32,13 +34,18 @@ impl Display for ProgramSettings {
 }
 
 impl ProgramSettings {
-    pub async fn init(pm: &mut PrintMode) -> Self {
-        let settings_file_path = format!(
+
+    fn get_settings_file_path() -> String {
+        format!(
             "{}{}{}",
             std::env::current_dir().unwrap().display(),
             MAIN_SEPARATOR,
             "settings.json"
-        );
+        )
+    }
+
+    pub async fn init(pm: &mut PrintMode) -> Self {
+        let settings_file_path = ProgramSettings::get_settings_file_path();
         let def = Self::default();
         let remove_and_create = async {
             tokio::fs::remove_file(&settings_file_path)
@@ -48,8 +55,8 @@ impl ProgramSettings {
                 &settings_file_path,
                 serde_json::to_string_pretty(&def).unwrap_or_default(),
             )
-            .await
-            .unwrap_or_default();
+                .await
+                .unwrap_or_default();
             Self::default()
         };
         pm.verbose_msg("Start loading Settings file", None);
@@ -65,12 +72,12 @@ impl ProgramSettings {
                         "Object Deserialization got some errors. Recreating the Settings File",
                         None,
                     );
-                    pm.error_msg("Recreated News because of Internal Failure!");
+                    pm.error_msg("Recreated new settings file because of Internal Failure!");
                     remove_and_create.await
                 }
             } else {
                 pm.verbose_msg("Error reading File contents. Assuming the binary signature is malformed. Recreating the Settings File", None);
-                pm.error_msg("Recreated News because of Internal Failure!");
+                pm.error_msg("Recreated new settings file because of Internal Failure!");
 
                 remove_and_create.await
             }
@@ -80,10 +87,24 @@ impl ProgramSettings {
                 &settings_file_path,
                 serde_json::to_string_pretty(&def).unwrap_or_default(),
             )
-            .await
-            .unwrap_or_default();
+                .await
+                .unwrap_or_default();
             pm.normal_msg("Settings File created");
             Self::default()
+        }
+    }
+
+    pub async fn save_changes(&mut self) -> Result<(), Box<dyn Error>> {
+        let open_opt = tokio::fs::OpenOptions::new()
+            .truncate(true)
+            .write(true)
+            .open(ProgramSettings::get_settings_file_path())
+            .await;
+        if let Ok(mut file) = open_opt {
+            file.write_all(serde_json::to_string(self)?.as_bytes()).await?;
+            Ok(())
+        } else {
+            Err(Box::from("Error writing into settings file!"))
         }
     }
 }

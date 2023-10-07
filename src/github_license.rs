@@ -48,4 +48,14 @@ impl GithubLicense {
     pub fn get_markdown_license_link(&self) -> String {
         format!("\n[{}]({})", self.spdx_id, self.html_url)
     }
+
+    pub fn list_licenses_and_get_user_input(
+        licenses: &[GithubLicense],
+    ) -> Result<usize, Box<dyn std::error::Error>> {
+        licenses
+            .iter()
+            .enumerate()
+            .for_each(|(c, l)| println!("[{}] {}", c + 1, l.name));
+        Ok(read_input("Your Selection: ").parse::<usize>()? - 1)
+    }
 }

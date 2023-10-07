@@ -1,6 +1,6 @@
 [package]
 name = "license-me"
-version = "0.3.0"
+version = "1.0.0"
 edition = "2021"
 authors = ["Oliver Schantz <frequency403@gmail.com>"]
 description = "A little CLI-program to license your unlicensed git-repositorys on your machine - and create a dummy readme if it not exists!"
@@ -9,6 +9,7 @@ categories = ["commandline-utilities", "github", "git", "licenses"]
 keywords = ["cli", "cli-licenser", "git-licenser", "licenser", "git"]
 license = "MIT"
 homepage = "https://github.com/frequency403/license-me"
+repository = "https://github.com/frequency403/license-me"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

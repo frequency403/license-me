@@ -12,11 +12,11 @@ pub enum OperatingMode {
 impl OperatingMode {
     pub fn from_usize(i: usize) -> Option<Self> {
         match i {
-            1 => {Some(Self::SetNewLicense)},
-            2 => {Some(Self::AppendLicense)},
-            3 => {Some(Self::LicenseReplace)},
-            4 => {Some(Self::ShowAllGitDirs)},
-            5 => {Some(Self::Unlicense)},
+            1 => { Some(Self::SetNewLicense) }
+            2 => { Some(Self::AppendLicense) }
+            3 => { Some(Self::LicenseReplace) }
+            4 => { Some(Self::ShowAllGitDirs) }
+            5 => { Some(Self::Unlicense) }
             _ => None
         }
     }

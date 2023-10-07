@@ -3,10 +3,9 @@ use std::error::Error;
 use std::io::stdin;
 use std::ops::Range;
 use std::process;
-
+use futures::executor::block_on;
 use indicatif::{ProgressBar, ProgressStyle};
 use strum::IntoEnumIterator;
-
 use crate::api_communicator::get_all_licenses;
 use crate::git_dir::GitDir;
 use crate::github_license::GithubLicense;
@@ -59,6 +58,10 @@ fn print_help(pmm: &PrintMode) {
         In this mode, with or without debug/verbose mode, the program will find all repos WITHOUT a \"LICENSE\" file in it.\n
         It will let you Create a \"LICENSE\" file, and it will create a README.md if none is found.\n
         If a README.md is found, it will only append the link to your license to the end of your README.md\n\n\n\
+        [CONFIGURATION OPTIONS]\n\n\n\
+        --initial-configuration\tWill ask you two questions, with one required for the program to run (username)\n\n\
+        --github-user\tSets the github-user in the settings file\n\n\
+        --github-token\tSets the token for deactivating the API Limit\n\n\n\
         [MODE-CHANGING OPTIONS]\n\n\n\
         These options will list all git repository's with a \"LICENSE\" file in it\n\n\n\
         --append-license\tAdds a license to the chosen directory, and appends a Link to the end of README.md\n\n\
@@ -122,7 +125,45 @@ fn arg_modes(arguments: Vec<String>, pmm: &mut PrintMode, settings_file: &mut Pr
                 pmm.verbose_msg("Verbose Mode ON", None)
             }
 
-            "--github-token" => { settings_file.github_api_token = Some(arguments[count].clone()) }
+            "--initial-configuration" => {
+                settings_file.github_user = read_input("Enter your Github-Username (Otherwise the program will not work!):");
+                settings_file.github_api_token = if ask_a_question("Do you have a token?:") {
+                    Some(read_input("Enter the token:"))
+                } else {
+                    None
+                };
+                if settings_file.github_api_token.is_none() {
+                    pmm.normal_msg("Get one here: https://github.com/settings/tokens\nRemember that you have an request limit for the Github API!");
+                } else {
+                    pmm.normal_msg("Restart the Program to get started with license-me!")
+                }
+                if let Err(s) = block_on(settings_file.save_changes()) {
+                    pmm.error_msg(s)
+                } else {
+                    pmm.normal_msg("Settings successfully updated");
+                }
+                process::exit(0)
+            }
+
+            "--github-token" => {
+                settings_file.github_api_token = Some(arguments[count].clone());
+                if let Err(s) = block_on(settings_file.save_changes()) {
+                    pmm.error_msg(s)
+                } else {
+                    pmm.normal_msg("Settings successfully updated");
+                }
+                process::exit(0)
+            }
+
+            "--github-user" => {
+                settings_file.github_user = arguments[count].clone();
+                if let Err(s) = block_on(settings_file.save_changes()) {
+                    pmm.error_msg(s)
+                } else {
+                    pmm.normal_msg("Settings successfully updated");
+                }
+                process::exit(0)
+            }
 
             // Append/Add a LICENSE to a repo
             "--append-license" => op_mode = OperatingMode::AppendLicense,
@@ -152,38 +193,46 @@ fn extract_and_validate_num(num_as_str: &str, len_of_vec: usize) -> Result<usize
     }
 }
 
-fn present_dirs(directories: &[GitDir], operating_mode: &OperatingMode, print_mode: &PrintMode) -> Result<Vec<usize>, Box<dyn Error>> {
+fn present_dirs(directories: &Vec<GitDir>, operating_mode: &OperatingMode, print_mode: &PrintMode) -> Result<Vec<usize>, Box<dyn Error>> {
     directories.iter().enumerate().for_each(|(count, dir)| {
         match operating_mode {
             OperatingMode::SetNewLicense => {
-                if dir.license_path.is_none() {
+                if dir.license_path.is_none() || dir.license.is_none() {
                     println!("[{}] {}", count + 1, dir.path);
                 }
             }
             OperatingMode::ShowAllGitDirs => {
                 println!(
                     "[License: {}][Readme: {}] {}",
-                    PrintMode::colored_bools(dir.license_path.is_some()),
-                    PrintMode::colored_bools(dir.readme_path.is_some()),
+                    PrintMode::colored_bools(&(dir.license_path.is_some() || dir.license.is_some())),
+                    PrintMode::colored_bools(&dir.readme_path.is_some()),
                     dir.path
                 );
             }
             _ => {
-                if dir.license_path.is_some() {
+                if dir.license_path.is_some() || dir.license.is_some() {
                     println!("[{}] {}", count + 1, dir.path);
-                }}
+                }
+            }
         }
     });
 
     // If the user just wanted to see how many git directories he has....
     if operating_mode == &OperatingMode::ShowAllGitDirs {
         print_mode.normal_msg("\n\nPlease run again for modifying the directories\n");
-       process::exit(0);
+        process::exit(0);
     }
 
     let mut input_of_user: Vec<usize> = vec![];
 
     match read_input("Enter the number(s) of the repository's to select them: ").as_str() {
+        x if x.contains(", ") => {
+            x.split(", ").for_each(|e| {
+                if let Ok(parsed) = extract_and_validate_num(e, directories.len()) {
+                    input_of_user.push(parsed)
+                }
+            })
+        }
         x if x.contains(' ') => {
             x.split(' ').for_each(|e| {
                 if let Ok(parsed) = extract_and_validate_num(e, directories.len()) {
@@ -212,39 +261,43 @@ fn present_dirs(directories: &[GitDir], operating_mode: &OperatingMode, print_mo
             range.for_each(|choice| input_of_user.push(choice))
         }
         x if x.contains("all") => { directories.iter().enumerate().for_each(|entry| input_of_user.push(entry.0)) }
-        x if x.parse::<usize>().is_ok() => {input_of_user.push(extract_and_validate_num(x, directories.len())?)}
+        x if x.parse::<usize>().is_ok() => { input_of_user.push(extract_and_validate_num(x, directories.len())?) }
         _ => {}
     }
     Ok(input_of_user)
 }
 
-async fn recursive_main(found_git_dirs: Vec<GitDir>, all_licenses: Vec<GithubLicense>, mut print_mode: PrintMode, settings: ProgramSettings, operating_mode: OperatingMode) -> Result<usize, Box<dyn Error>> {
-    let chosen_directories: Vec<GitDir> = present_dirs(&found_git_dirs, &operating_mode, &print_mode)?.into_iter().map(|num| {
-        found_git_dirs[num - 1].clone()
-    }).collect();
-
+async fn recursive_main(found_git_dirs: &mut Vec<GitDir>, all_licenses: Vec<GithubLicense>, mut print_mode: PrintMode, settings: ProgramSettings, operating_mode: OperatingMode) -> Result<usize, Box<dyn Error>> {
     let mut processed_dirs_count: usize = 0;
+    let chosen_dirs = present_dirs(found_git_dirs, &operating_mode, &print_mode)?;
 
-    for mut choice in chosen_directories.clone() {
+    for chosen_nums in &chosen_dirs {
+        let chosen_dir = &mut found_git_dirs[chosen_nums - 1];
         clear_term();
-        print_mode.normal_msg(format!(
-            "Directory {} of {}",
-            processed_dirs_count + 1,
-            chosen_directories.len()
-        ));
-        print_mode.normal_msg(format!(
-            "Working on {}\nPath: {}",
-            ansi_term::Color::Blue.paint(&choice.project_title), choice.path
-        ));
-        print_mode.normal_msg(format!(
-            "Found License: {} | Found Readme: {}\n\n",
-            PrintMode::colored_bools(choice.license_path.is_some() || choice.license.is_some()),
-            PrintMode::colored_bools(choice.readme_path.is_some())
-        ));
-        if let Some(license) = &choice.license {
-            print_mode.normal_msg(format!("Recognized the \"{}\" License!", license.name))
+        if operating_mode == OperatingMode::Unlicense {
+            print_mode.normal_msg(format!("Deleting license from {} ...", chosen_dir.project_title))
+        } else {
+            print_mode.normal_msg(format!(
+                "Directory {} of {}",
+                processed_dirs_count + 1,
+                &chosen_dirs.len()
+            ));
+            print_mode.normal_msg(format!(
+                "Working on {}\nPath: {}",
+                ansi_term::Color::Blue.paint(&chosen_dir.project_title), &chosen_dir.path
+            ));
+            print_mode.normal_msg(format!(
+                "Found License: {} | Found Readme: {}",
+                PrintMode::colored_bools(&(chosen_dir.license_path.is_some() || chosen_dir.license.is_some())),
+                PrintMode::colored_bools(&chosen_dir.readme_path.is_some())
+            ));
+            if let Some(license) = &chosen_dir.license {
+                print_mode.normal_msg(format!("Recognized the \"{}\" License!", license.name));
+            } else {
+                print_mode.normal_msg("\n\n");
+            }
         }
-        choice
+        chosen_dir
             .execute_user_action(
                 &settings,
                 &mut print_mode,
@@ -297,15 +350,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
             progress_bar.finish_and_clear();
         }
 
-        if let Ok(num) = recursive_main(found_git_dirs.clone(), all_licenses.clone(), print_mode.clone(), settings.clone(), operating_mode).await {
+        if let Ok(num) = recursive_main(&mut found_git_dirs, all_licenses.clone(), print_mode.clone(), settings.clone(), operating_mode).await {
             processed_dirs_count += num;
             if ask_a_question("Do you want to repeat the Process?") {
                 OperatingMode::iter().enumerate().for_each(|(c, n)| {
                     print_mode.normal_msg(format!("[{}] {:#?}", c + 1, n));
                 });
                 if let Ok(num) = read_input("Choose your operating mode:").parse::<usize>() {
-                    if let Some(enumeration) = OperatingMode::from_usize(num - 1) {
+                    if let Some(enumeration) = OperatingMode::from_usize(num) {
                         operating_mode = enumeration;
+                        print_mode.normal_msg(format!("Chosen mode: {:#?}", operating_mode));
                         continue;
                     } else {
                         break;

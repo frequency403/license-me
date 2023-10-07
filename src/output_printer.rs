@@ -31,8 +31,8 @@ impl PrintMode {
     // So you can use "&str" and "String" as Parameters
 
     pub fn error_msg<T>(&mut self, msg: T)
-    where
-        T: Display,
+        where
+            T: Display,
     {
         let formatted_message = format!(
             "[{} - {}] {}",
@@ -53,16 +53,16 @@ impl PrintMode {
 
     // A normal message printed to stdout
     pub fn normal_msg<T>(&self, msg: T)
-    where
-        T: Display,
+        where
+            T: Display,
     {
         println!("{}", msg);
     }
 
     // Messages for the Verbose mode with time
     pub fn verbose_msg<T>(&self, msg: T, bar_opt: Option<&ProgressBar>)
-    where
-        T: Display,
+        where
+            T: Display,
     {
         // If the mode is verbose or debug, verbose messages are printed
         if self.verbose || self.debug {
@@ -95,8 +95,8 @@ impl PrintMode {
         }
     }
 
-    pub fn colored_bools(boolean: bool) -> String {
-        let string = if boolean {
+    pub fn colored_bools(boolean: &bool) -> String {
+        let string = if *boolean {
             ansi_term::Color::Green.bold().paint("true").to_string()
         } else {
             ansi_term::Color::Red.bold().paint("false").to_string()
@@ -105,8 +105,8 @@ impl PrintMode {
     }
     // Same applies for the debug messages
     pub fn debug_msg<T>(&self, msg: T, bar_opt: Option<&ProgressBar>)
-    where
-        T: Display,
+        where
+            T: Display,
     {
         if self.debug {
             if let Some(bar) = bar_opt {

@@ -1,8 +1,8 @@
 use std::fmt::Display;
 
 pub fn is_alike<T>(target: T, comparison: T, min_percent_to_reach: isize) -> bool
-where
-    T: Display,
+    where
+        T: Display,
 {
     let p1string = target.to_string();
     let p1_s = p1string.split_ascii_whitespace().collect::<Vec<&str>>();

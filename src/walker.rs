@@ -1,10 +1,12 @@
-use futures::executor::block_on;
 use std::fmt::Display;
 use std::path::MAIN_SEPARATOR;
+
+use futures::executor::block_on;
 use sysinfo::{DiskExt, System, SystemExt};
 use tokio::task::JoinHandle;
 use tokio::time::Instant;
 use walkdir::WalkDir;
+
 use crate::git_dir::GitDir;
 use crate::github_license::GithubLicense;
 
@@ -44,8 +46,8 @@ async fn start_walking<T>(
     root: T,
     licences: Vec<GithubLicense>,
 ) -> Vec<GitDir>
-where
-    T: Display,
+    where
+        T: Display,
 {
     let mut task_holder: Vec<JoinHandle<Vec<GitDir>>> = vec![];
     WalkDir::new(root.to_string())
@@ -54,7 +56,7 @@ where
         .for_each(|dir| {
             if let Ok(entry) = dir {
                 let tmp = entry.path().display().to_string();
-                if !tmp.contains('$') || !tmp.split(MAIN_SEPARATOR).collect::<Vec<&str>>()[1].starts_with('.'){
+                if !tmp.contains('$') || !tmp.split(MAIN_SEPARATOR).collect::<Vec<&str>>()[1].starts_with('.') {
                     task_holder.push(tokio::spawn(walk_deeper(tmp, licences.clone())))
                 }
             }

@@ -5,7 +5,7 @@ use async_recursion::async_recursion;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 
-use crate::{ask_a_question, read_input};
+use crate::ask_a_question;
 use crate::alike::is_alike;
 use crate::api_communicator::get_readme_template;
 use crate::github_license::GithubLicense;
@@ -234,16 +234,17 @@ impl GitDir {
         user_choice: &GithubLicense,
         multi_license: bool,
     ) {
-        if let Some(license_path) = &self.license_path {
+        if self.license_path.is_none() || self.license.is_none() {
             if let Err(error) = tokio::fs::write(
-                license_path,
+                self.get_default_license_path(),
                 user_choice.clone().set_username_and_year().body,
             )
                 .await
             {
                 print_mode.error_msg(error);
             }
-
+            self.license_path = Some(self.get_default_license_path().into());
+            self.license = Some(user_choice.to_owned());
             if self.readme_path.is_some() {
                 if multi_license {
                     self.replace_in_readme(user_choice, print_mode, false).await;
@@ -252,25 +253,12 @@ impl GitDir {
                 self.set_dummy_readme(program_settings, print_mode).await;
                 self.replace_in_readme(user_choice, print_mode, multi_license).await;
             }
-            // } else if !multi_license {
-            //     print_mode.error_msg("Wanted to set a license, while a license was detected! Use the \"AppendLicenseMode\" for this!");
         } else {
-            self.license_path = Some(self.get_default_license_path().into());
-            self.license = Some(user_choice.to_owned());
             self.write_license(program_settings, print_mode, user_choice, multi_license)
                 .await
         }
     }
 
-    fn list_licenses_and_get_user_input(
-        licenses: &[GithubLicense],
-    ) -> Result<usize, Box<dyn std::error::Error>> {
-        licenses
-            .iter()
-            .enumerate()
-            .for_each(|(c, l)| println!("[{}] {}", c + 1, l.name));
-        Ok(read_input("Your Selection: ").parse::<usize>()? - 1)
-    }
 
     pub async fn execute_user_action(
         &mut self,
@@ -279,22 +267,19 @@ impl GitDir {
         op_mode: &OperatingMode,
         licenses: Vec<GithubLicense>,
     ) {
-        if op_mode == &OperatingMode::Unlicense
-            && (self.license_path.is_some() || self.license.is_some())
-        {
-            let res = tokio::fs::remove_file(self.license_path.clone().unwrap()).await;
-            if res.is_ok() {
-                println!(
-                    "Deleted License from {} directory in path:\n{}",
-                    self.project_title, self.path
-                );
-                return;
-            } else {
-                println!("Could not delete License from {}", self.project_title);
-                return;
+        if op_mode == &OperatingMode::Unlicense {
+            if let Some(unwrapped_license_path) = self.license_path.clone() {
+                if let Err(err) = tokio::fs::remove_file(unwrapped_license_path).await {
+                    print_mode.error_msg(format!("{} occurred while deleting the license file in Unlicense mode", err))
+                } else {
+                    self.license_path = None;
+                    self.license = None;
+                }
             }
+            return;
         }
-        if let Ok(uint) = GitDir::list_licenses_and_get_user_input(&licenses) {
+
+        if let Ok(uint) = GithubLicense::list_licenses_and_get_user_input(&licenses) {
             let user_choice = &licenses[uint];
             match op_mode {
                 OperatingMode::SetNewLicense => {
