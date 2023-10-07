@@ -59,15 +59,15 @@ fn print_help(pmm: &PrintMode) {
         It will let you Create a \"LICENSE\" file, and it will create a README.md if none is found.\n
         If a README.md is found, it will only append the link to your license to the end of your README.md\n\n\n\
         [CONFIGURATION OPTIONS]\n\n\n\
-        --initial-configuration\tWill ask you two questions, with one required for the program to run (username)\n\n\
-        --github-user\tSets the github-user in the settings file\n\n\
-        --github-token\tSets the token for deactivating the API Limit\n\n\n\
+        --initial-configuration\t\tWill ask you two questions, with one required for the program to run (username)\n\n\
+        --github-user\t\tSets the github-user in the settings file\n\n\
+        --github-token\t\tSets the token for deactivating the API Limit\n\n\n\
         [MODE-CHANGING OPTIONS]\n\n\n\
         These options will list all git repository's with a \"LICENSE\" file in it\n\n\n\
         --append-license\tAdds a license to the chosen directory, and appends a Link to the end of README.md\n\n\
         --replace-license\tIt will delete ALL license-like files in your chosen directory.\n\
         \t\t\tCreates a new one with replacing the complete \"## License\" section in your README.md\n\
-        It also gives you the possibility to update your current license.\n\n\
+        \t\t\tIt also gives you the possibility to update your current license.\n\n\
         --show-all\t\tLists all git repository's, regardless of containing a LICENSE file and aborts\n\n\
         --unlicense\t\tDeletes a license from the chosen repositories or chosen repository"
     );
