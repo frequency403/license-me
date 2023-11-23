@@ -19,6 +19,15 @@ pub struct PrintMode {
 }
 
 impl PrintMode {
+    /// Initializes a `PrintMode` with default settings.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use crate::norm;
+    ///
+    /// let print_mode = norm();
+    /// ```
     pub const fn norm() -> PrintMode {
         PrintMode {
             verbose: false,
@@ -27,9 +36,27 @@ impl PrintMode {
         }
     }
 
-    // In all functions, "msg" is Generic, which implements the "Display" trait.
-    // So you can use "&str" and "String" as Parameters
 
+    /// Prints an error message to stderr and adds it to the error collection.
+    ///
+    /// # Arguments
+    ///
+    /// * `msg` - The error message to display. This can be of any type that implements the `Display` trait.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use ansi_term::Color;
+    /// # use chrono::Local;
+    /// # use std::fmt::Display;
+    /// # use error_handling::ErrorCollection;
+    /// # use error_handling::ErrorHandler;
+    /// # fn main() {
+    /// #    let mut error_handler = ErrorHandler::new(ErrorCollection::new());
+    /// #    let msg = "Something went wrong";
+    /// #    error_handler.error_msg(msg);
+    /// # }
+    /// ```
     pub fn error_msg<T>(&mut self, msg: T)
         where
             T: Display,
@@ -51,7 +78,20 @@ impl PrintMode {
         self.err_col.add(formatted_message);
     }
 
-    // A normal message printed to stdout
+    /// Prints a message to the console.
+    ///
+    /// # Arguments
+    ///
+    /// * `msg` - The message to be printed. Must implement the `Display` trait.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use my_module::MyStruct;
+    ///
+    /// let my_object = MyStruct::new();
+    /// my_object.normal_msg("Hello, World!");
+    /// ```
     pub fn normal_msg<T>(&self, msg: T)
         where
             T: Display,
@@ -59,7 +99,30 @@ impl PrintMode {
         println!("{}", msg);
     }
 
-    // Messages for the Verbose mode with time
+
+    /// Prints a verbose message if the mode is verbose or debug. If a `ProgressBar` instance is provided,
+    /// it will be suspended while printing the message.
+    ///
+    /// # Arguments
+    ///
+    /// * `msg` - The message to be printed. Must implement `std::fmt::Display`.
+    /// * `bar_opt` - An optional `ProgressBar` instance. If provided, the progress bar will be suspended while
+    ///               printing the message.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use ansi_term::Color;
+    /// use chrono::Local;
+    /// use indicatif::ProgressBar;
+    ///
+    /// let verbose = true;
+    /// let debug = false;
+    /// let msg = "This is a verbose message";
+    /// let bar_opt = Some(&ProgressBar::new(10));
+    ///
+    /// verbose_msg(msg, bar_opt);
+    /// ```
     pub fn verbose_msg<T>(&self, msg: T, bar_opt: Option<&ProgressBar>)
         where
             T: Display,
@@ -95,6 +158,30 @@ impl PrintMode {
         }
     }
 
+    /// Converts a boolean value into a colored string representation.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use ansi_term::Color;
+    ///
+    /// let true_bool = true;
+    /// let false_bool = false;
+    ///
+    /// let true_str = colored_bools(&true_bool);
+    /// assert_eq!(true_str, Color::Green.bold().paint("true").to_string());
+    ///
+    /// let false_str = colored_bools(&false_bool);
+    /// assert_eq!(false_str, Color::Red.bold().paint("false").to_string());
+    /// ```
+    ///
+    /// # Arguments
+    ///
+    /// * `boolean` - A reference to a boolean value.
+    ///
+    /// # Returns
+    ///
+    /// A string representation of the boolean value with applied ANSI color codes.
     pub fn colored_bools(boolean: &bool) -> String {
         let string = if *boolean {
             ansi_term::Color::Green.bold().paint("true").to_string()
@@ -103,7 +190,27 @@ impl PrintMode {
         };
         string
     }
-    // Same applies for the debug messages
+
+    /// Prints a debug message if the `debug` flag is set to true.
+    ///
+    /// # Arguments
+    ///
+    /// * `msg`: The message to print, must implement the `Display` trait.
+    /// * `bar_opt`: An optional reference to a progress bar.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use ansi_term::Color;
+    /// use chrono::Local;
+    /// use progress_bar::ProgressBar;
+    ///
+    /// let debug = true;
+    /// let pb = ProgressBar::new();
+    /// let message = "This is a debug message.";
+    ///
+    /// debug_msg(message, Some(&pb));
+    /// ```
     pub fn debug_msg<T>(&self, msg: T, bar_opt: Option<&ProgressBar>)
         where
             T: Display,

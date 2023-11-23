@@ -17,6 +17,26 @@ pub struct ProgramSettings {
 }
 
 impl Default for ProgramSettings {
+    /// Returns the default configuration for the application.
+    ///
+    /// The default configuration consists of:
+    /// - An empty `github_user` string.
+    /// - An optional `github_api_token` that is set to `None`.
+    /// - A `readme_template_link` string that is set to "https://raw.githubusercontent.com/PurpleBooth/a-good-readme-template/main/README.md".
+    /// - A `replace_in_readme_phrase` string that is set to "# Project Title".
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use crate::config::Config;
+    ///
+    /// let default_config = Config::default();
+    ///
+    /// assert_eq!(default_config.github_user, "");
+    /// assert_eq!(default_config.github_api_token, None);
+    /// assert_eq!(default_config.readme_template_link, "https://raw.githubusercontent.com/PurpleBooth/a-good-readme-template/main/README.md");
+    /// assert_eq!(default_config.replace_in_readme_phrase, "# Project Title");
+    /// ```
     fn default() -> Self {
         Self {
             github_user: String::new(),
@@ -35,6 +55,28 @@ impl Display for ProgramSettings {
 
 impl ProgramSettings {
 
+    /// Returns the file path for the settings file.
+    ///
+    /// This function retrieves the current directory using `std::env::current_dir()`
+    /// and appends the file name "settings.json" to the path. The file path is then
+    /// returned as a `String`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use std::path::MAIN_SEPARATOR;
+    ///
+    /// fn get_settings_file_path() -> String {
+    ///     format!(
+    ///         "{}{}{}",
+    ///         std::env::current_dir().unwrap().display(),
+    ///         MAIN_SEPARATOR,
+    ///         "settings.json"
+    ///     )
+    /// }
+    ///
+    /// let file_path = get_settings_file_path();
+    /// ```
     fn get_settings_file_path() -> String {
         format!(
             "{}{}{}",
@@ -44,6 +86,19 @@ impl ProgramSettings {
         )
     }
 
+    /// Initializes the program settings.
+    ///
+    /// This function loads the settings from a file on disk, or creates a new settings file if no file is found.
+    /// If the file exists and its contents are valid, the settings are loaded from the file.
+    /// If the file is missing or the contents are invalid, a new settings file is created.
+    ///
+    /// # Arguments
+    ///
+    /// * `pm` - A mutable reference to the `PrintMode` struct.
+    ///
+    /// # Returns
+    ///
+    /// Returns a new instance of `Self` containing the loaded or newly created settings.
     pub async fn init(pm: &mut PrintMode) -> Self {
         let settings_file_path = ProgramSettings::get_settings_file_path();
         let def = Self::default();
@@ -94,6 +149,39 @@ impl ProgramSettings {
         }
     }
 
+    /// Saves the changes made to the program settings.
+    ///
+    /// This function attempts to open the settings file in write mode, truncate the file if it exists,
+    /// and write the serialized program settings into the file.
+    ///
+    /// # Errors
+    ///
+    /// If an error occurs during the file operations or serialization, an `Err` variant is returned.
+    /// The error message will be "Error writing into settings file!".
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use std::error::Error;
+    /// #
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), Box<dyn Error>> {
+    /// #
+    /// # struct ProgramSettings;
+    /// #
+    /// # impl ProgramSettings {
+    /// #     fn get_settings_file_path() -> &'static str {
+    /// #         unimplemented!()
+    /// #     }
+    /// # }
+    /// #
+    /// # let mut program_settings = ProgramSettings;
+    /// #
+    /// program_settings.save_changes().await?;
+    /// #
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn save_changes(&mut self) -> Result<(), Box<dyn Error>> {
         let open_opt = tokio::fs::OpenOptions::new()
             .truncate(true)

@@ -9,6 +9,7 @@ use crate::git_dir::GitDir;
 use crate::github_license::{GithubLicense, MiniGithubLicense};
 use crate::settings_file::ProgramSettings;
 
+/// Represents an API error.
 #[derive(Serialize, Deserialize)]
 pub struct ApiError {
     message: String,
@@ -16,6 +17,15 @@ pub struct ApiError {
 }
 
 impl ApiError {
+    /// Formats the error code and canonical reason as a string.
+    ///
+    /// # Arguments
+    ///
+    /// * `status` - The `StatusCode` for the error.
+    ///
+    /// # Returns
+    ///
+    /// A formatted string with the error code and canonical reason.
     pub fn with_error_code(self, status: StatusCode) -> String {
         format!("\t\tError Code: {}\n\t\tCanonical Reason: {:?}", status.as_str(), status.canonical_reason())
     }
@@ -32,6 +42,16 @@ impl Display for ApiError {
 
 static GITHUB_API_URL: &str = "https://api.github.com/licenses";
 
+/// Sets the headers for the HTTP request builder.
+///
+/// # Arguments
+///
+/// * `req` - The HTTP request builder.
+/// * `program_settings` - The program settings.
+///
+/// # Returns
+///
+/// The modified HTTP request builder with the headers set.
 fn set_header(req: RequestBuilder, program_settings: &ProgramSettings) -> RequestBuilder {
     let mut headers = HeaderMap::new();
 
@@ -44,6 +64,23 @@ fn set_header(req: RequestBuilder, program_settings: &ProgramSettings) -> Reques
     req.headers(headers)
 }
 
+/// Retrieves information about all licenses from the GitHub API.
+///
+/// # Arguments
+///
+/// * `program_settings` - The program settings.
+///
+/// # Returns
+///
+/// A vector of `GithubLicense` objects retrieved from the GitHub API.
+///
+/// # Errors
+///
+/// Returns a `Box<dyn Error>` if an error occurs during the retrieval process. Possible errors include:
+/// * Network errors when making HTTP requests
+/// * Deserialization errors when parsing the API response
+/// * API error responses with error code and message
+///
 pub async fn get_all_licenses(
     program_settings: &ProgramSettings,
 ) -> Result<Vec<GithubLicense>, Box<dyn Error>> {
@@ -84,6 +121,16 @@ pub async fn get_all_licenses(
     Ok(full_obj)
 }
 
+/// Retrieves a README template from a given URL and replaces a specified phrase with the project title.
+///
+/// # Arguments
+///
+/// * `program_settings` - A reference to the `ProgramSettings` struct containing the program settings.
+/// * `directory` - A reference to the `GitDir` struct representing the project directory.
+///
+/// # Returns
+///
+/// Returns an `Option<String>` that contains the README template with the specified phrase replaced by the project title, or `None` if an error occurred
 pub async fn get_readme_template(
     program_settings: &ProgramSettings,
     directory: &GitDir,

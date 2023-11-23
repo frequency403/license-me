@@ -1,5 +1,25 @@
 use std::fmt::Display;
 
+/// Checks if two values are alike based on the percentage of matching words.
+///
+/// The function takes two generic values `target` and `comparison`, which must implement the
+/// `Display` trait. It also takes a minimum percentage `min_percent_to_reach` as an `isize`.
+///
+/// Returns `true` if the percentage of matching words between `target` and `comparison`
+/// is greater than or equal to `min_percent_to_reach`, otherwise returns `false`.
+///
+/// # Examples
+///
+/// ```
+/// use crate::is_alike;
+///
+/// let target = "Hello, world!";
+/// let comparison = "Hello, there!";
+/// let min_percent_to_reach = 50;
+/// let result = is_alike(target, comparison, min_percent_to_reach);
+///
+/// assert_eq!(result, true);
+/// ```
 pub fn is_alike<T>(target: T, comparison: T, min_percent_to_reach: isize) -> bool
     where
         T: Display,

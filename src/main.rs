@@ -25,7 +25,14 @@ mod output_printer;
 mod settings_file;
 mod walker;
 
-// Using a ProgressBar (spinner) from the crate "ProgressBar"
+
+/// Creates a progress spinner and returns it.
+///
+/// # Examples
+///
+/// ```
+/// let spinner = progress_spinner();
+/// ```
 pub fn progress_spinner() -> ProgressBar {
     // Init main struct
     let p_bar = ProgressBar::new_spinner();
@@ -44,9 +51,21 @@ pub fn progress_spinner() -> ProgressBar {
 }
 
 
-// Prints CLI-Help & exits
-// Uses the PrintMode message Method
 
+/// Prints the help message for the CLI tool.
+///
+/// # Arguments
+///
+/// * `pmm` - A reference to the `PrintMode` struct.
+///
+/// # Example
+///
+/// ```
+/// use crate::PrintMode;
+///
+/// let pmm = PrintMode::new();
+/// print_help(&pmm);
+/// ```
 fn print_help(pmm: &PrintMode) {
     pmm.normal_msg(
         "LICENSE-ME\t\tA CLI-TOOL FOR LICENSING YOUR GIT REPOSITORYS!\n\n\
@@ -74,16 +93,45 @@ fn print_help(pmm: &PrintMode) {
     process::exit(0);
 }
 
-// Clears the Terminal
-// Same as "clear"
 
+/// Clears the terminal screen.
+///
+/// This function clears the terminal screen by printing escape sequences to the console. It uses the ANSI escape sequences
+/// `\x1B[2J` and `\x1b[1;1H` to clear the screen and move the cursor to the top left corner respectively.
+///
+/// # Examples
+///
+/// ```
+/// use my_library::clear_term;
+///
+/// fn main() {
+///     // Clear the terminal screen
+///     clear_term();
+/// }
+/// ```
 fn clear_term() {
     print!("\x1B[2J\x1b[1;1H");
 }
 
-// Helper Function for reading user-input which prompts the user with a Message
-// Also trims whitespaces
 
+
+/// Reads user input from the command line.
+///
+/// # Arguments
+///
+/// * `prompt` - A message to display as a prompt to the user.
+///
+/// # Returns
+///
+/// A `String` containing the user's input, with leading and trailing whitespace removed.
+/// If reading the input fails, the function will exit the process with an exit code of 1.
+///
+/// # Examples
+///
+/// ```rust
+/// let input = read_input("Please enter your name: ");
+/// println!("Hello, {}!", input);
+/// ```
 fn read_input(prompt: &str) -> String {
     let mut s = String::new();
     println!("\n\n{}", prompt);
@@ -93,6 +141,34 @@ fn read_input(prompt: &str) -> String {
     s.trim().to_string()
 }
 
+/// # ask_a_question
+///
+/// A function that asks a question and expects a yes or no answer from the user.
+///
+/// ## Arguments
+/// * `question` - A string slice that represents the question to be asked to the user.
+///
+/// ## Returns
+/// * `bool` - A boolean value indicating whether the user's answer was yes (`true`) or no (`false`).
+///
+/// ## Examples
+/// ```
+/// use std::io;
+///
+/// fn read_input(prompt: &str) -> String {
+///     let mut input = String::new();
+///     io::stdin().read_line(&mut input).unwrap();
+///     input.trim().to_string()
+/// }
+///
+/// let question = "Do you like pizza?";
+/// let answer = ask_a_question(question);
+/// if answer {
+///     println!("Great, you like pizza!");
+/// } else {
+///     println!("Oh no, you don't like pizza!");
+/// }
+/// ```
 fn ask_a_question(question: &str) -> bool {
     matches!(
         read_input(format!("{} [Y/n]:", question).as_str()).as_str(),
@@ -100,8 +176,18 @@ fn ask_a_question(question: &str) -> bool {
     )
 }
 
-// Decides on the given arguments,
-// which mode the program is running.
+
+/// Determines the operating mode based on the input arguments.
+///
+/// # Arguments
+///
+/// * `arguments` - A vector of strings representing the program arguments.
+/// * `pmm` - A mutable reference to the `PrintMode` struct.
+/// * `settings_file` - A mutable reference to the `ProgramSettings` struct.
+///
+/// # Returns
+///
+/// The determined operating mode as a value of the `OperatingMode` enum.
 fn arg_modes(arguments: Vec<String>, pmm: &mut PrintMode, settings_file: &mut ProgramSettings) -> OperatingMode {
     // Uses a Vec<String> as container for the program Arguments
 
@@ -182,6 +268,50 @@ fn arg_modes(arguments: Vec<String>, pmm: &mut PrintMode, settings_file: &mut Pr
 }
 
 
+/// Extracts and validates a number as a string.
+///
+/// This function takes a `num_as_str` parameter which is a string representation of a number
+/// and a `len_of_vec` parameter which represents the length of a vector. The function attempts
+/// to parse the `num_as_str` as an `isize`. If the parsing is successful, it checks if the
+/// parsed number is positive and within the range of `len_of_vec`. If the number is not positive
+/// or out of range, it returns an `Err` with the error message "NumNotPositiveOrInRange". If the
+/// parsing fails, it returns an `Err` with the error message "NumParsingError". If everything is
+/// successful, it returns an `Ok` with the parsed number as `usize`.
+///
+/// # Arguments
+///
+/// * `num_as_str` - A string representation of a number.
+/// * `len_of_vec` - Length of a vector.
+///
+/// # Returns
+///
+/// An `Result` which contains either the parsed number as `usize` or an `Err` with an error message.
+///
+/// # Examples
+///
+/// ```rust
+/// use std::error::Error;
+///
+/// fn main() -> Result<(), Box<dyn Error>> {
+///     let num_as_str = "5";
+///     let len_of_vec = 10;
+///     let result = extract_and_validate_num(num_as_str, len_of_vec)?;
+///     assert_eq!(result, 5);
+///     Ok(())
+/// }
+/// ```
+///
+/// ```rust
+/// use std::error::Error;
+///
+/// fn main() -> Result<(), Box<dyn Error>> {
+///     let num_as_str = "15";
+///     let len_of_vec = 10;
+///     let result = extract_and_validate_num(num_as_str, len_of_vec)?;
+///     // Returns an Err("NumNotPositiveOrInRange")
+///     Ok(())
+/// }
+/// ```
 fn extract_and_validate_num(num_as_str: &str, len_of_vec: usize) -> Result<usize, Box<dyn Error>> {
     if let Ok(int) = num_as_str.trim().parse::<isize>() {
         if !int.is_positive() || int > len_of_vec as isize {
@@ -193,6 +323,17 @@ fn extract_and_validate_num(num_as_str: &str, len_of_vec: usize) -> Result<usize
     }
 }
 
+/// Presents the directories and their information based on the operating mode and print mode.
+///
+/// # Arguments
+///
+/// * `directories` - A vector of `GitDir` structs representing the directories.
+/// * `operating_mode` - An `OperatingMode` enum representing the mode of operation.
+/// * `print_mode` - A `PrintMode` enum representing the mode of printing.
+///
+/// # Returns
+///
+/// * A `Result` containing a vector of `usize` representing the selected directories, or a boxed dynamic `Error` trait object.
 fn present_dirs(directories: &Vec<GitDir>, operating_mode: &OperatingMode, print_mode: &PrintMode) -> Result<Vec<usize>, Box<dyn Error>> {
     directories.iter().enumerate().for_each(|(count, dir)| {
         match operating_mode {
@@ -267,6 +408,46 @@ fn present_dirs(directories: &Vec<GitDir>, operating_mode: &OperatingMode, print
     Ok(input_of_user)
 }
 
+/// Main function that performs recursive processing on the given Git directories.
+///
+/// # Arguments
+///
+/// * `found_git_dirs` - A mutable vector of `GitDir` representing the found Git directories
+/// * `all_licenses` - A vector of `GithubLicense` representing all available licenses
+/// * `print_mode` - The `PrintMode` to use for printing messages
+/// * `settings` - The `ProgramSettings` to use for configuring the program
+/// * `operating_mode` - The `OperatingMode` to use for determining the mode of operation
+///
+/// # Returns
+///
+/// A `Result` containing the number of processed directories on success, or a `Box<dyn Error>` on failure.
+///
+/// # Examples
+///
+/// ```
+/// // Initialize variables
+/// let mut found_git_dirs: Vec<GitDir> = Vec::new();
+/// let all_licenses: Vec<GithubLicense> = vec![
+///     GithubLicense { name: "License 1" },
+///     GithubLicense { name: "License 2" },
+/// ];
+/// let print_mode = PrintMode::Normal;
+/// let settings = ProgramSettings { /* settings configuration */ };
+/// let operating_mode = OperatingMode::Unlicense;
+///
+/// // Call the recursive_main function
+/// let result = recursive_main(&mut found_git_dirs, all_licenses, print_mode, settings, operating_mode);
+///
+/// // Handle the result
+/// match result {
+///     Ok(processed_dirs_count) => {
+///         println!("Total processed directories: {}", processed_dirs_count);
+///     },
+///     Err(error) => {
+///         eprintln!("An error occurred: {}", error);
+///     },
+/// }
+/// ```
 async fn recursive_main(found_git_dirs: &mut Vec<GitDir>, all_licenses: Vec<GithubLicense>, mut print_mode: PrintMode, settings: ProgramSettings, operating_mode: OperatingMode) -> Result<usize, Box<dyn Error>> {
     let mut processed_dirs_count: usize = 0;
     let chosen_dirs = present_dirs(found_git_dirs, &operating_mode, &print_mode)?;
@@ -321,6 +502,16 @@ fn print_initial() {
     println!("\t\t|--------------------------------------------|\n\n");
 }
 
+/// Runs the main program
+///
+/// This function is the entry point of the program. It performs the following steps:
+/// 1. Calls the `print_initial` function to print the initial message.
+/// 2. Starts measuring the system time.
+/// 3. Initializes the `PrintMode` struct.
+/// 4. Initializes the `ProgramSettings` struct by calling the `init` method.
+/// 5. Initializes variables to keep track of the processed directories count, licenses, and found git directories.
+/// 6. Enters a loop that continues until there are no remaining licenses or git directories.
+/// 7. If both the licenses and git directories are empty, it calls the `get_all_licenses` function to populate the `all_licenses` vector and the `init
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     print_initial();

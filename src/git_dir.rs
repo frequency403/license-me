@@ -26,6 +26,7 @@ static LICENSE_VARIANTS: [&str; 3] = ["LICENSE", "license", "License"];
 static DEFAULT_LICENSE_FILE: &str = "LICENSE";
 static DEFAULT_README_FILE: &str = "README.md";
 
+/// Represents a directory containing a Git repository.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct GitDir {
     pub(crate) path: String,
@@ -36,6 +37,35 @@ pub struct GitDir {
 }
 
 impl GitDir {
+    /// Initializes a new instance of `Self` with the given path and optional licenses.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - A string representing the path to the project.
+    /// * `licenses` - An optional vector of `GithubLicense` representing the available licenses.
+    ///
+    /// # Returns
+    ///
+    /// A new instance of `Self`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use tokio::fs::read_to_string;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let path = String::from("path/to/project");
+    ///     let licenses = vec![GithubLicense { body: String::from("MIT License") }];
+    ///
+    ///     let result = init(path, Some(licenses)).await;
+    ///     assert_eq!(result.path, "path/to/project");
+    ///     assert_eq!(result.readme_path, None);
+    ///     assert_eq!(result.license_path, None);
+    ///     assert_eq!(result.project_title, "project");
+    ///     assert_eq!(result.license, None);
+    /// }
+    /// ```
     pub async fn init(path: String, licenses: Option<Vec<GithubLicense>>) -> Self {
         let clean_path = path.replace(format!("{}.git", MAIN_SEPARATOR).as_str(), "");
         let project_title = clean_path.split(MAIN_SEPARATOR).last().unwrap().to_string();
@@ -95,14 +125,85 @@ impl GitDir {
         }
     }
 
+    /// Returns the default path for the README file.
+    ///
+    /// # Arguments
+    ///
+    /// - `self`: The instance of the struct.
+    ///
+    /// # Returns
+    ///
+    /// The default path for the README file as a `String`.
     pub fn get_default_readme_path(&self) -> String {
         format!("{}{}{}", self.path, MAIN_SEPARATOR, DEFAULT_README_FILE)
     }
 
+    /// Returns the path of the default license file.
+    ///
+    /// The default license file path is constructed by concatenating the current
+    /// path with the main separator and the name of the default license file.
+    ///
+    /// # Arguments
+    ///
+    /// - `self`: A reference to the current object.
+    ///
+    /// # Returns
+    ///
+    /// The path of the default license file as a `String`.
     pub fn get_default_license_path(&self) -> String {
         format!("{}{}{}", self.path, MAIN_SEPARATOR, DEFAULT_LICENSE_FILE)
     }
 
+    /// Sets a dummy README file if it does not already exist.
+    ///
+    /// # Arguments
+    ///
+    /// * `program_settings` - The program settings.
+    /// * `print_mode` - The print mode.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// # use std::path::PathBuf;
+    /// # use tokio::fs;
+    /// # use some_crate::{ProgramSettings, PrintMode};
+    /// # struct SomeStruct {
+    /// #     readme_path: Option<PathBuf>,
+    /// #     license_path: Option<PathBuf>,
+    /// # }
+    /// # impl SomeStruct {
+    /// #     async fn get_readme_template(
+    /// #         program_settings: &ProgramSettings,
+    /// #         some_param: &SomeStruct,
+    /// #     ) -> Option<Vec<u8>> {
+    /// #         // Some implementation here
+    /// #         Some(vec![1, 2, 3])
+    /// #     }
+    /// #     fn get_default_readme_path(&self) -> PathBuf {
+    /// #         PathBuf::from("some_path")
+    /// #     }
+    /// pub async fn set_dummy_readme(
+    ///     &mut self,
+    ///     program_settings: &ProgramSettings,
+    ///     print_mode: &mut PrintMode,
+    /// ) {
+    ///     if self.readme_path.is_none() {
+    ///         let dummy_path = self.get_default_readme_path();
+    ///         if let Some(readme) = get_readme_template(program_settings, &self.clone()).await {
+    ///             if let Err(error) = fs::write(&dummy_path, readme).await {
+    ///                 print_mode.error_msg("Failure during README file creation");
+    ///                 print_mode.error_msg(error);
+    ///             }
+    ///         } else {
+    ///             print_mode.error_msg("Failure during README file content creation");
+    ///         }
+    ///         self.license_path = Some(dummy_path);
+    ///     }
+    /// }
+    /// # }
+    /// ```
     pub async fn set_dummy_readme(
         &mut self,
         program_settings: &ProgramSettings,
@@ -122,6 +223,23 @@ impl GitDir {
         }
     }
 
+    /// Replaces the license section in the readme file with a new license.
+    ///
+    /// # Arguments
+    ///
+    /// * `license` - A reference to the `GithubLicense` object representing the new license.
+    /// * `pm` - A mutable reference to the `PrintMode` object for printing messages.
+    /// * `multi_license` - A boolean value indicating whether the project has multiple licenses.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut printer = PrintMode::new();
+    /// let license = GithubLicense::new("MIT", "https://opensource.org/licenses/MIT");
+    /// let mut project = Project::new();
+    ///
+    /// project.replace_in_readme(&license, &mut printer, false).await;
+    /// ```
     async fn replace_in_readme(
         &self,
         license: &GithubLicense,
@@ -226,6 +344,14 @@ impl GitDir {
         }
     }
 
+    /// Writes the license file.
+    ///
+    /// # Arguments
+    ///
+    /// * `program_settings` - The program settings.
+    /// * `print_mode` - The print mode.
+    /// * `user_choice` - The chosen GitHub license.
+    /// * `multi_license` - Indicates whether multiple licenses are used.
     #[async_recursion]
     async fn write_license(
         &mut self,
