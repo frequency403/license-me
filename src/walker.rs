@@ -2,7 +2,7 @@ use std::fmt::Display;
 use std::path::MAIN_SEPARATOR;
 
 use futures::executor::block_on;
-use sysinfo::{DiskExt, System, SystemExt};
+use sysinfo::Disks;
 use tokio::task::JoinHandle;
 use tokio::time::Instant;
 use walkdir::WalkDir;
@@ -49,9 +49,10 @@ pub async fn init_search(
     time: Instant,
     licenses: Vec<GithubLicense>,
 ) -> Vec<GitDir> {
-    let system = System::new_all();
+    let disks = Disks::new_with_refreshed_list();
+    // let system = System::new_all();
     let mut task_holder: Vec<JoinHandle<Vec<GitDir>>> = vec![];
-    system.disks().iter().for_each(|disk| {
+    disks.iter().for_each(|disk| {
         task_holder.push(tokio::spawn(start_walking(
             disk.mount_point().display().to_string(),
             licenses.clone(),
