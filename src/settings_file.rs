@@ -1,6 +1,7 @@
+use std::env::consts::OS;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use std::path::{MAIN_SEPARATOR, Path};
+use std::path::{Path, PathBuf};
 use std::string::ToString;
 
 use serde::{Deserialize, Serialize};
@@ -55,35 +56,16 @@ impl Display for ProgramSettings {
 
 impl ProgramSettings {
 
-    /// Returns the file path for the settings file.
-    ///
-    /// This function retrieves the current directory using `std::env::current_dir()`
-    /// and appends the file name "settings.json" to the path. The file path is then
-    /// returned as a `String`.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use std::path::MAIN_SEPARATOR;
-    ///
-    /// fn get_settings_file_path() -> String {
-    ///     format!(
-    ///         "{}{}{}",
-    ///         std::env::current_dir().unwrap().display(),
-    ///         MAIN_SEPARATOR,
-    ///         "settings.json"
-    ///     )
-    /// }
-    ///
-    /// let file_path = get_settings_file_path();
-    /// ```
     fn get_settings_file_path() -> String {
-        format!(
-            "{}{}{}",
-            std::env::current_dir().unwrap().display(),
-            MAIN_SEPARATOR,
-            "settings.json"
-        )
+        let mut home_dir = String::from("");
+        if OS.to_lowercase().contains("windows"){
+            let key_content = std::env::var("APPDATA").unwrap_or(format!("{}", std::env::current_dir().unwrap().display().to_string()));
+            home_dir = key_content
+        } else {
+            let key_content = std::env::var("HOME").unwrap_or(format!("{}", std::env::current_dir().unwrap().display().to_string()));
+            home_dir = key_content
+        }
+        [home_dir.as_str(), "LicenseMe", "settings.json"].iter().collect::<PathBuf>().display().to_string()
     }
 
     /// Initializes the program settings.
@@ -94,7 +76,7 @@ impl ProgramSettings {
     ///
     /// # Arguments
     ///
-    /// * `pm` - A mutable reference to the `PrintMode` struct.
+    /// * `Pm` - A mutable reference to the `PrintMode` struct.
     ///
     /// # Returns
     ///
