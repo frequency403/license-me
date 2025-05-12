@@ -15,7 +15,7 @@ repository = "https://github.com/frequency403/license-me"
 
 [dependencies]
 walkdir = "2.4.0"
-sysinfo = "0.34.2"
+sysinfo = "0.35.1"
 indicatif = "0.17.6"
 chrono = "0.4.30"
 ansi_term = "0.12.1"
