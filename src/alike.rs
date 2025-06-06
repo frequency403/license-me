@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 /// Checks if two values are alike based on the percentage of matching words.
 ///
 /// The function takes two generic values `target` and `comparison`, which must implement the
@@ -21,25 +19,43 @@ use std::fmt::Display;
 /// assert_eq!(result, true);
 /// ```
 pub fn is_alike<T>(target: T, comparison: T, min_percent_to_reach: isize) -> bool
-    where
-        T: Display,
+where
+    T: std::fmt::Display,
 {
     let p1string = target.to_string();
-    let p1_s = p1string.split_ascii_whitespace().collect::<Vec<&str>>();
-    let p1_s_words = p1_s.len() as isize;
     let p2string = comparison.to_string();
-    let p2_s = p2string.split_ascii_whitespace().collect::<Vec<&str>>();
-    let p2_s_words = p2_s.len() as isize;
-    let mut percent: f64 = if p1_s_words != p2_s_words { (p1_s_words - p2_s_words) as f64 } else { 0.0 };
-    let mut words_match: isize = 0;
 
-    for (count, word) in p1_s.into_iter().enumerate() {
-        if count < p2_s_words as usize && word == p2_s[count] {
-            words_match += 1;
+    let max_len = std::cmp::max(p1string.len(), p2string.len());
+    if max_len == 0 {
+        return true;
+    }
+
+    let distance = levenshtein(&p1string, &p2string);
+    let similarity = 1.0 - (distance as f64 / max_len as f64);
+    let percent = similarity * 100.0;
+
+    percent >= min_percent_to_reach as f64
+}
+
+/// Computes the Levenshtein distance between two strings.
+/// This is a standard dynamic programming implementation.
+fn levenshtein(a: &str, b: &str) -> usize {
+    let mut costs = (0..=b.len()).collect::<Vec<_>>();
+
+    for (i, ca) in a.chars().enumerate() {
+        let mut last_cost = i;
+        costs[0] = i + 1;
+
+        for (j, cb) in b.chars().enumerate() {
+            let new_cost = if ca == cb {
+                last_cost
+            } else {
+                1 + std::cmp::min(std::cmp::min(costs[j], costs[j + 1]), last_cost)
+            };
+            last_cost = costs[j + 1];
+            costs[j + 1] = new_cost;
         }
     }
 
-    percent += (words_match as f64 / p1_s_words as f64) * 100.00;
-
-    percent >= min_percent_to_reach as f64
+    costs[b.len()]
 }

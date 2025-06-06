@@ -5,7 +5,6 @@ edition = "2021"
 authors = ["Oliver Schantz <frequency403@gmail.com>"]
 description = "A little CLI-program to license your unlicensed git-repositorys on your machine - and create a dummy readme if it not exists!"
 readme = "README.md"
-categories = ["commandline-utilities", "github", "git", "licenses"]
 keywords = ["cli", "cli-licenser", "git-licenser", "licenser", "git"]
 license = "MIT"
 homepage = "https://github.com/frequency403/license-me"
@@ -15,7 +14,7 @@ repository = "https://github.com/frequency403/license-me"
 
 [dependencies]
 walkdir = "2.4.0"
-sysinfo = "0.30.0"
+sysinfo = "0.35.2"
 indicatif = "0.17.6"
 chrono = "0.4.30"
 ansi_term = "0.12.1"
@@ -25,9 +24,8 @@ futures = { version = "0.3.28", features = [] }
 serde_json = "1.0.107"
 reqwest = "0.12.2"
 async-recursion = "1.0.5"
-lazy_static = "1.4.0"
-strum = "0.26.1"
-strum_macros = "0.26.1"
+strum = "0.27.1"
+strum_macros = "0.27.1"
 
 [profile.dev]
 opt-level = 0
