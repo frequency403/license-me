@@ -27,7 +27,7 @@ reqwest = "0.13.1"
 async-recursion = "1.0.5"
 lazy_static = "1.4.0"
 strum = "0.27.0"
-strum_macros = "0.27.0"
+strum_macros = "0.28.0"
 
 [profile.dev]
 opt-level = 0
